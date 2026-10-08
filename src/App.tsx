@@ -1,3 +1,4 @@
+import { Outlet } from 'react-router';
 import { useAuthStore } from '@/features/auth/model/useAuthStore';
 import { LoginForm } from '@/features/auth/ui/LoginForm';
 
@@ -39,15 +40,7 @@ export default function App() {
 
       {/* Main Content Area Placeholder */}
       <main className="flex-1 max-w-6xl w-full mx-auto p-4 sm:p-6">
-        <div className="bg-slate-800/50 border border-slate-700/60 rounded-xl p-8 text-center text-slate-400">
-          <h2 className="text-xl font-semibold text-slate-200 mb-2">
-            Welcome back, {user?.first_name}!
-          </h2>
-          <p className="text-sm max-w-md mx-auto">
-            Session active. Stage 3 (State Management & Auth Flow) completed.
-            Ready for Stage 4 (Webhook List & URL Sync).
-          </p>
-        </div>
+        <Outlet />
       </main>
     </div>
   );
