@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router';
+import { useLocation, useNavigate } from 'react-router';
 import type { Webhook } from '@/shared/api/contract';
 import { useWebhookFilters } from '../model/useWebhookFilters';
 import {
@@ -9,6 +9,7 @@ import {
 
 export function WebhooksListPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { filters, setFilter, resetFilters } = useWebhookFilters();
   const { data, isLoading, isError, error, refetch } =
     useWebhooksQuery(filters);
@@ -123,11 +124,21 @@ export function WebhooksListPage() {
           </button>
         </div>
       ) : !data?.data?.length ? (
-        <div className="p-12 text-center bg-slate-800 rounded-xl border border-slate-700">
-          <p className="text-slate-400 text-lg mb-1">No webhooks found</p>
+        <div className="p-12 text-center bg-slate-800 rounded-xl border border-slate-700 space-y-3">
+          <p className="text-slate-400 text-lg">No webhooks found</p>
           <p className="text-slate-500 text-sm">
             Try adjusting your search or status filter
           </p>
+          {currentPage > 1 && (
+            <div className="pt-2">
+              <button
+                onClick={() => setFilter({ page: 1 })}
+                className="px-4 py-2 text-sm bg-sky-500 hover:bg-sky-400 text-white font-medium rounded-lg transition"
+              >
+                Reset to page 1
+              </button>
+            </div>
+          )}
         </div>
       ) : (
         <div className="bg-slate-800 rounded-xl border border-slate-700 overflow-hidden">
@@ -135,9 +146,15 @@ export function WebhooksListPage() {
             <table className="w-full text-left text-sm text-slate-300">
               <thead className="bg-slate-900/60 text-xs font-semibold uppercase tracking-wider text-slate-400 border-b border-slate-700">
                 <tr>
-                  <th className="px-6 py-3">Name / URL</th>
-                  <th className="px-6 py-3">Status</th>
-                  <th className="px-6 py-3 text-right">Actions</th>
+                  <th scope="col" className="px-6 py-3">
+                    Name / URL
+                  </th>
+                  <th scope="col" className="px-6 py-3">
+                    Status
+                  </th>
+                  <th scope="col" className="px-6 py-3 text-right">
+                    Actions
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-700/60">
@@ -185,7 +202,11 @@ export function WebhooksListPage() {
                         Ping
                       </button>
                       <button
-                        onClick={() => void navigate(`/webhooks/${item.id}`)}
+                        onClick={() =>
+                          void navigate(`/webhooks/${item.id}`, {
+                            state: { from: location.search },
+                          })
+                        }
                         className="px-2.5 py-1 bg-sky-500/10 hover:bg-sky-500/20 text-sky-400 text-xs rounded transition"
                       >
                         Edit
@@ -204,7 +225,10 @@ export function WebhooksListPage() {
           </div>
 
           {totalPages > 1 && (
-            <div className="px-6 py-4 bg-slate-900/40 border-t border-slate-700 flex items-center justify-between text-sm">
+            <nav
+              aria-label="Pagination"
+              className="px-6 py-4 bg-slate-900/40 border-t border-slate-700 flex items-center justify-between text-sm"
+            >
               <span className="text-slate-400">
                 Page <strong className="text-white">{currentPage}</strong> of{' '}
                 <strong className="text-white">{totalPages}</strong>
@@ -225,7 +249,7 @@ export function WebhooksListPage() {
                   Next
                 </button>
               </div>
-            </div>
+            </nav>
           )}
         </div>
       )}

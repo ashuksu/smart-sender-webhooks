@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router';
+import { useLocation, useNavigate, useParams } from 'react-router';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -10,8 +10,19 @@ import {
 } from '../model/useWebhooksQuery';
 
 const webhookSchema = z.object({
-  name: z.string().min(1, 'Name is required'),
-  url: z.string().url('Enter a valid URL'),
+  name: z.string().trim().min(1, 'Name is required'),
+  url: z
+    .string()
+    .trim()
+    .min(1, 'URL is required')
+    .refine((val) => {
+      try {
+        const parsed = new URL(val);
+        return parsed.protocol === 'http:' || parsed.protocol === 'https:';
+      } catch {
+        return false;
+      }
+    }, 'URL must be a valid HTTP or HTTPS address'),
   active: z.boolean(),
 });
 
@@ -25,6 +36,9 @@ const labelClass =
 export function WebhookEditPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
+  const fromSearch = (location.state as { from?: string } | null)?.from ?? '';
+  const backUrl = `/webhooks${fromSearch}`;
 
   const numericId = id ? Number(id) : 0;
   const {
@@ -72,7 +86,7 @@ export function WebhookEditPage() {
         },
       });
 
-      void navigate('/webhooks');
+      void navigate(backUrl);
     } catch (err) {
       applyServerErrors(err, setError, ['name', 'url']);
     }
@@ -106,7 +120,7 @@ export function WebhookEditPage() {
         </div>
         <button
           type="button"
-          onClick={() => void navigate('/webhooks')}
+          onClick={() => void navigate(backUrl)}
           className="px-3 py-1.5 text-sm bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg transition"
         >
           Back to List
@@ -185,7 +199,7 @@ export function WebhookEditPage() {
             </button>
             <button
               type="button"
-              onClick={() => void navigate('/webhooks')}
+              onClick={() => void navigate(backUrl)}
               className="px-5 py-2.5 bg-slate-700 hover:bg-slate-600 text-white text-sm rounded-lg transition"
             >
               Cancel
