@@ -94,14 +94,20 @@ export const handlers = [
     const csrfError = requireCsrf(request);
     if (csrfError) return csrfError;
 
+    const body = (await request.json().catch(() => ({}))) as {
+      fingerprint?: string;
+    };
+
     if (db.config.rotateDelayMs > 0) {
       await delay(db.config.rotateDelayMs);
     }
 
     db.stats.rotateCalls++;
 
-    const success = db.rotateSession();
-    if (!success) {
+    if (!body.fingerprint || db.session?.fingerprint !== body.fingerprint) {
+      return badRequest('No active session to rotate.');
+    }
+    if (!db.rotateSession()) {
       return badRequest('No active session to rotate.');
     }
 

@@ -1,25 +1,10 @@
-import { useEffect } from 'react';
 import { useAuthStore } from '@/features/auth/model/useAuthStore';
 import { LoginForm } from '@/features/auth/ui/LoginForm';
 
 export default function App() {
-  const { user, isAuthenticated, isInitializing, checkAuth, logout } =
-    useAuthStore();
-
-  useEffect(() => {
-    checkAuth();
-  }, [checkAuth]);
-
-  if (isInitializing) {
-    return (
-      <div className="min-h-screen bg-slate-900 text-white flex items-center justify-center">
-        <div className="flex items-center gap-3">
-          <div className="w-5 h-5 border-2 border-sky-400 border-t-transparent rounded-full animate-spin" />
-          <span className="text-slate-400 font-medium">Loading session...</span>
-        </div>
-      </div>
-    );
-  }
+  const user = useAuthStore((state) => state.user);
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  const logout = useAuthStore((state) => state.logout);
 
   if (!isAuthenticated) {
     return <LoginForm />;

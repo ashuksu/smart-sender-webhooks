@@ -1,100 +1,49 @@
 import { create } from 'zustand';
 import type { Me } from '@/shared/api/contract';
-import { apiFetch, setOnUnauthorized } from '@/shared/api/client';
-import { getOrCreateFingerprint } from '@/shared/lib/fingerprint';
-import { CAPTCHA_HEADER } from '@/mocks/constants';
+import {
+  getMe,
+  issueSession,
+  login as loginRequest,
+  revokeSession,
+} from '@/shared/api/auth';
+import { endSession, onSessionEnded, startSession } from '@/shared/api/session';
 
 interface AuthState {
   user: Me | null;
   isAuthenticated: boolean;
-  isInitializing: boolean;
-  isLoading: boolean;
-  error: string | null;
-
-  login: (credentials: {
-    email: string;
-    password: string;
-    captchaToken: string;
-  }) => Promise<void>;
+  login: (credentials: { email: string; password: string }) => Promise<void>;
   logout: () => Promise<void>;
-  checkAuth: () => Promise<void>;
-  clearError: () => void;
 }
 
 export const useAuthStore = create<AuthState>((set) => {
-  // Subscribe to auto-logout in case of irreparable session expiration from apiFetch
-  setOnUnauthorized(() => {
-    set({ user: null, isAuthenticated: false, isLoading: false });
-  });
+  onSessionEnded(() => set({ user: null, isAuthenticated: false }));
 
   return {
     user: null,
     isAuthenticated: false,
-    isInitializing: true,
-    isLoading: false,
-    error: null,
 
-    clearError: () => set({ error: null }),
-
-    checkAuth: async () => {
-      set({ isInitializing: true });
+    login: async ({ email, password }) => {
+      // device_session_token lives only in this closure: not in state, storage or URL
+      const deviceSessionToken = await loginRequest(email, password);
+      await issueSession(deviceSessionToken);
+      startSession();
       try {
-        const user = await apiFetch<Me>('/api/v1/me');
-        set({ user, isAuthenticated: true, isInitializing: false });
-      } catch {
-        set({ user: null, isAuthenticated: false, isInitializing: false });
-      }
-    },
-
-    login: async ({ email, password, captchaToken }) => {
-      set({ isLoading: true, error: null });
-      try {
-        const fingerprint = getOrCreateFingerprint();
-
-        // Step 1: POST /api/auth/login -> we get device_session_token
-        const loginRes = await apiFetch<{ device_session_token: string }>(
-          '/api/auth/login',
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              [CAPTCHA_HEADER]: captchaToken,
-            },
-            body: JSON.stringify({ email, password, fingerprint }),
-          }
-        );
-
-        // Step 2: POST /api/auth/token/issue -> activate the session
-        await apiFetch<{ success: boolean }>('/api/auth/token/issue', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            device_session_token: loginRes.device_session_token,
-            fingerprint,
-          }),
-        });
-
-        // Step 3: GET /api/v1/me -> fetch user profile
-        const user = await apiFetch<Me>('/api/v1/me');
-        set({ user, isAuthenticated: true, isLoading: false, error: null });
-      } catch (err) {
-        const message =
-          err instanceof Error ? err.message : 'Authentication failed';
-        set({ isLoading: false, error: message });
-        throw err;
+        const user = await getMe();
+        set({ user, isAuthenticated: true });
+      } catch (error) {
+        endSession();
+        throw error;
       }
     },
 
     logout: async () => {
-      set({ isLoading: true });
       try {
-        await apiFetch('/api/auth/token/revoke', { method: 'POST' });
+        await revokeSession();
       } catch {
-        // Ignore network errors during logout
+        // local logout must succeed even if revoke fails
       } finally {
-        set({ user: null, isAuthenticated: false, isLoading: false });
+        endSession();
+        set({ user: null, isAuthenticated: false });
       }
     },
   };

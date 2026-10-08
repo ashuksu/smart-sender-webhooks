@@ -1,8 +1,19 @@
 import { db } from './db';
 import { CSRF_TOKEN } from './constants';
-import { tokenMismatch, unauthorized } from './errors';
+import { badRequest, tokenMismatch, unauthorized } from './errors';
+
+/** Self-check for client regressions: every API request must carry X-Requested-With. */
+function requireAjaxHeader(request: Request) {
+  if (request.headers.get('X-Requested-With') !== 'XMLHttpRequest') {
+    return badRequest('The X-Requested-With header is required.');
+  }
+  return null;
+}
 
 export function requireCsrf(request: Request) {
+  const ajaxError = requireAjaxHeader(request);
+  if (ajaxError) return ajaxError;
+
   const method = request.method.toUpperCase();
   if (method === 'POST' || method === 'PUT') {
     const headerToken = request.headers.get('X-CSRF-TOKEN');
@@ -14,8 +25,10 @@ export function requireCsrf(request: Request) {
 }
 
 export function requireSession(request: Request) {
-  const fingerprint = request.headers.get('x-fingerprint') ?? undefined;
-  if (!db.isSessionValid(fingerprint)) {
+  const ajaxError = requireAjaxHeader(request);
+  if (ajaxError) return ajaxError;
+
+  if (!db.isSessionValid()) {
     return unauthorized();
   }
   return null;

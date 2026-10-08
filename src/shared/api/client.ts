@@ -1,146 +1,98 @@
 import { getOrCreateFingerprint } from '@/shared/lib/fingerprint';
-import { getCsrfToken, setCsrfToken, clearSessionData } from './session';
+import { getCsrfToken, invalidateCsrfToken } from './csrf';
+import { toApiError } from './errors';
+import {
+  bumpSessionGeneration,
+  endSession,
+  getSessionGeneration,
+  isSessionActive,
+} from './session';
 
-type OnUnauthorizedCallback = () => void;
-let onUnauthorizedCallback: OnUnauthorizedCallback | null = null;
-
-export function setOnUnauthorized(cb: OnUnauthorizedCallback) {
-  onUnauthorizedCallback = cb;
+export interface ApiRequestOptions {
+  method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
+  json?: unknown;
+  headers?: HeadersInit;
+  signal?: AbortSignal;
+  /** Set to false for auth endpoints: a 401 there must never trigger a rotate. */
+  auth?: boolean;
 }
 
-export async function fetchCsrfToken(): Promise<string | null> {
-  const res = await fetch('/api/csrf', {
-    method: 'GET',
-    headers: {
-      'x-fingerprint': getOrCreateFingerprint(),
-    },
-  });
-  const token = res.headers.get('X-CSRF-TOKEN');
-  if (token) {
-    setCsrfToken(token);
-  }
-  return token;
-}
+const UNSAFE_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
 
-let isRotating = false;
-let rotateSubscribers: Array<(success: boolean) => void> = [];
+let rotatePromise: Promise<void> | null = null;
 
-function subscribeTokenRotate(cb: (success: boolean) => void) {
-  rotateSubscribers.push(cb);
-}
-
-function onRotateComplete(success: boolean) {
-  rotateSubscribers.forEach((cb) => cb(success));
-  rotateSubscribers = [];
+/** Single-flight rotate: every concurrent caller awaits the same promise. */
+function rotateSession(): Promise<void> {
+  rotatePromise ??= apiFetch<unknown>('/api/auth/token/rotate', {
+    method: 'POST',
+    json: { fingerprint: getOrCreateFingerprint() },
+    auth: false,
+  })
+    .then(() => {
+      bumpSessionGeneration();
+    })
+    .catch((error: unknown) => {
+      endSession();
+      throw error;
+    })
+    .finally(() => {
+      rotatePromise = null;
+    });
+  return rotatePromise;
 }
 
 export async function apiFetch<T>(
-  url: string,
-  options: RequestInit = {},
-  isRetry = false
+  path: string,
+  options: ApiRequestOptions = {}
 ): Promise<T> {
-  const method = (options.method || 'GET').toUpperCase();
-  const headers = new Headers(options.headers || {});
+  const {
+    method = 'GET',
+    json,
+    headers: extraHeaders,
+    signal,
+    auth = true,
+  } = options;
+  let csrfRetried = false;
+  let authRetried = false;
 
-  const fingerprint = getOrCreateFingerprint();
-  headers.set('x-fingerprint', fingerprint);
+  for (;;) {
+    const generation = getSessionGeneration();
+    const csrfToken = await getCsrfToken();
 
-  if (['POST', 'PUT', 'DELETE', 'PATCH'].includes(method)) {
-    let csrf = getCsrfToken();
-    if (!csrf) {
-      csrf = await fetchCsrfToken();
-    }
-    if (csrf) {
-      headers.set('X-CSRF-TOKEN', csrf);
-    }
-  }
+    const headers = new Headers(extraHeaders);
+    headers.set('Accept', 'application/json');
+    headers.set('X-Requested-With', 'XMLHttpRequest');
+    if (json !== undefined) headers.set('Content-Type', 'application/json');
+    if (UNSAFE_METHODS.has(method)) headers.set('X-CSRF-TOKEN', csrfToken);
 
-  const response = await fetch(url, {
-    ...options,
-    headers,
-  });
+    const response = await fetch(path, {
+      method,
+      headers,
+      signal,
+      body: json === undefined ? undefined : JSON.stringify(json),
+    });
 
-  // 1. Handling CSRF Mismatch (419)
-  if (response.status === 419 && !isRetry) {
-    await fetchCsrfToken();
-    return apiFetch<T>(url, options, true);
-  }
-
-  // 2. Handling 401 & Single-Flight Session Rotation
-  if (response.status === 401) {
-    if (
-      url.includes('/api/auth/login') ||
-      url.includes('/api/auth/token/rotate')
-    ) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData?.error?.message || 'Unauthorized');
+    if (response.status === 419 && !csrfRetried) {
+      csrfRetried = true;
+      invalidateCsrfToken();
+      continue;
     }
 
-    if (!isRotating) {
-      isRotating = true;
-
-      try {
-        let csrf = getCsrfToken();
-        if (!csrf) {
-          csrf = await fetchCsrfToken();
-        }
-
-        const rotateRes = await fetch('/api/auth/token/rotate', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'x-fingerprint': fingerprint,
-            ...(csrf ? { 'X-CSRF-TOKEN': csrf } : {}),
-          },
-        });
-
-        if (rotateRes.ok) {
-          isRotating = false;
-          onRotateComplete(true);
-          return apiFetch<T>(url, options, true);
-        } else {
-          isRotating = false;
-          onRotateComplete(false);
-          clearSessionData();
-          if (onUnauthorizedCallback) onUnauthorizedCallback();
-          const errJson = await response.json().catch(() => ({}));
-          throw new Error(errJson?.error?.message || 'Session expired');
-        }
-      } catch (err) {
-        isRotating = false;
-        onRotateComplete(false);
-        clearSessionData();
-        if (onUnauthorizedCallback) onUnauthorizedCallback();
-        throw err;
+    if (response.status === 401 && auth && isSessionActive()) {
+      if (authRetried) {
+        // Repeated 401 after a successful rotate: the session is gone for good
+        endSession();
+        throw await toApiError(response);
       }
-    } else {
-      const rotateSuccess = await new Promise<boolean>((resolve) => {
-        subscribeTokenRotate(resolve);
-      });
-
-      if (rotateSuccess) {
-        return apiFetch<T>(url, options, true);
-      } else {
-        throw new Error('Session expired');
+      authRetried = true;
+      if (getSessionGeneration() === generation) {
+        await rotateSession(); // throws (and ends the session) when rotate fails
       }
+      continue;
     }
-  }
 
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    const message = errorData?.error?.message || `HTTP ${response.status}`;
-    const error = new Error(message) as Error & {
-      status: number;
-      payload?: unknown;
-    };
-    error.status = response.status;
-    error.payload = errorData?.error?.payload;
-    throw error;
+    if (!response.ok) throw await toApiError(response);
+    if (response.status === 204) return undefined as T;
+    return (await response.json()) as T;
   }
-
-  if (response.status === 204) {
-    return undefined as T;
-  }
-
-  return response.json() as Promise<T>;
 }
