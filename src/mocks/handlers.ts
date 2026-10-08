@@ -146,6 +146,8 @@ export const handlers = [
     const searchParam = (url.searchParams.get('search') || '')
       .trim()
       .toLowerCase();
+    const statusParam = url.searchParams.get('status');
+    const activeParam = url.searchParams.get('active');
 
     const limit = isNaN(limitParam) || limitParam <= 0 ? 10 : limitParam;
     let filtered = db.webhooks;
@@ -153,6 +155,16 @@ export const handlers = [
     if (searchParam) {
       filtered = filtered.filter((item) =>
         item.name.toLowerCase().includes(searchParam)
+      );
+    }
+
+    if (statusParam && statusParam !== 'all') {
+      filtered = filtered.filter((item) =>
+        statusParam === 'active' ? item.active : !item.active
+      );
+    } else if (activeParam !== null) {
+      filtered = filtered.filter((item) =>
+        activeParam === 'true' ? item.active : !item.active
       );
     }
 
