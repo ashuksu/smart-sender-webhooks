@@ -1,0 +1,23 @@
+# Build & Output
+node_modules
+dist
+dist-ssr
+build
+.tmp
+
+# MSW Service Worker (генерується автотично)
+public/mockServiceWorker.js
+
+# Logs & Environment
+*.log
+.env
+.env.*
+
+# Editor & System
+.vscode
+.idea
+.DS_Store
+
+# Locks & Coverage
+pnpm-lock.yaml
+coverage
