@@ -7,6 +7,7 @@ import {
   revokeSession,
 } from '@/shared/api/auth';
 import { endSession, onSessionEnded, startSession } from '@/shared/api/session';
+import { queryClient } from '@/app/providers/queryClient';
 
 interface AuthState {
   user: Me | null;
@@ -23,7 +24,6 @@ export const useAuthStore = create<AuthState>((set) => {
     isAuthenticated: false,
 
     login: async ({ email, password }) => {
-      // device_session_token lives only in this closure: not in state, storage or URL
       const deviceSessionToken = await loginRequest(email, password);
       await issueSession(deviceSessionToken);
       startSession();
@@ -38,10 +38,12 @@ export const useAuthStore = create<AuthState>((set) => {
 
     logout: async () => {
       try {
+        await queryClient.cancelQueries();
         await revokeSession();
       } catch {
         // local logout must succeed even if revoke fails
       } finally {
+        queryClient.clear();
         endSession();
         set({ user: null, isAuthenticated: false });
       }
