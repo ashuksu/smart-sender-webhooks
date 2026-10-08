@@ -36,7 +36,6 @@ export function useWebhookFilters() {
           if (updates.search !== undefined) {
             if (!updates.search) next.delete('search');
             else next.set('search', updates.search);
-            // При изменении поиска сбрасываем страницу на 1
             if (updates.page === undefined) next.delete('page');
           }
 

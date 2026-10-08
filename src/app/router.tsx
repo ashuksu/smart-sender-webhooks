@@ -1,6 +1,8 @@
 import { createBrowserRouter, Navigate } from 'react-router';
 import { LoginForm } from '@/features/auth/ui/LoginForm';
 import { RequireAuth } from '@/features/auth/ui/RequireAuth';
+import { WebhooksListPage } from '@/features/webhooks/ui/WebhooksListPage';
+import { WebhookEditPage } from '@/features/webhooks/ui/WebhookEditPage';
 import App from '@/App';
 
 export const router = createBrowserRouter([
@@ -22,11 +24,11 @@ export const router = createBrowserRouter([
       },
       {
         path: 'webhooks',
-        element: <div>Webhooks List Placeholder</div>,
+        element: <WebhooksListPage />,
       },
       {
         path: 'webhooks/:id',
-        element: <div>Webhook Edit Placeholder</div>,
+        element: <WebhookEditPage />,
       },
     ],
   },

@@ -1,7 +1,7 @@
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { useNavigate, useSearchParams } from 'react-router';
+import { Navigate, useNavigate, useSearchParams } from 'react-router';
 import { DEMO_EMAIL, DEMO_PASSWORD } from '@/shared/api/constants';
 import { applyServerErrors } from '@/shared/lib/applyServerErrors';
 import { sanitizeReturnTo } from '@/shared/lib/sanitizeReturnTo';
@@ -38,8 +38,7 @@ export function LoginForm() {
   });
 
   if (isAuthenticated) {
-    navigate(returnTo, { replace: true });
-    return null;
+    return <Navigate to={returnTo} replace />;
   }
 
   const onSubmit = handleSubmit(async (values) => {

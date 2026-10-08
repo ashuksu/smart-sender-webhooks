@@ -14,8 +14,10 @@ export function getWebhooks(
   if (params.page) query.set('page', String(params.page));
   if (params.limit) query.set('limit', String(params.limit));
   if (params.search) query.set('search', params.search);
-  if (params.status && params.status !== 'all')
+  if (params.status && params.status !== 'all') {
     query.set('status', params.status);
+    query.set('active', params.status === 'active' ? 'true' : 'false');
+  }
 
   const queryString = query.toString();
   const path = `/api/v1/webhooks${queryString ? `?${queryString}` : ''}`;
