@@ -13,7 +13,7 @@ export function WebhooksListPage() {
   const { filters, setFilter, resetFilters } = useWebhookFilters();
   const { data, isLoading, isError, error, refetch } =
     useWebhooksQuery(filters);
-  const { toggleWebhook, deleteWebhook, pingWebhook, isToggling } =
+  const { toggleWebhook, deleteWebhook, pingWebhook, isToggling, isDeleting } =
     useWebhookMutations();
 
   const [prevSearch, setPrevSearch] = useState(filters.search);
@@ -37,6 +37,8 @@ export function WebhooksListPage() {
     msg: string;
   } | null>(null);
 
+  const [webhookToDelete, setWebhookToDelete] = useState<Webhook | null>(null);
+
   const handlePing = async (id: number) => {
     try {
       const res = await pingWebhook(id);
@@ -48,9 +50,13 @@ export function WebhooksListPage() {
     }
   };
 
-  const handleDelete = async (id: number) => {
-    if (confirm('Are you sure you want to delete this webhook?')) {
-      await deleteWebhook(id);
+  const confirmDelete = async () => {
+    if (!webhookToDelete) return;
+    try {
+      await deleteWebhook(webhookToDelete.id);
+      setWebhookToDelete(null);
+    } catch {
+      // Error handled by query/global error handler
     }
   };
 
@@ -212,7 +218,7 @@ export function WebhooksListPage() {
                         Edit
                       </button>
                       <button
-                        onClick={() => void handleDelete(item.id)}
+                        onClick={() => setWebhookToDelete(item)}
                         className="px-2.5 py-1 bg-red-500/10 hover:bg-red-500/20 text-red-400 text-xs rounded transition"
                       >
                         Delete
@@ -251,6 +257,40 @@ export function WebhooksListPage() {
               </div>
             </nav>
           )}
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {webhookToDelete && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 backdrop-blur-sm p-4"
+          role="dialog"
+          aria-modal="true"
+        >
+          <div className="bg-slate-800 border border-slate-700 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
+            <h2 className="text-xl font-bold text-white">Delete Webhook</h2>
+            <p className="text-sm text-slate-300">
+              Are you sure you want to delete{' '}
+              <strong className="text-white">{webhookToDelete.name}</strong>?
+              This action cannot be undone.
+            </p>
+            <div className="flex justify-end gap-3 pt-2">
+              <button
+                onClick={() => setWebhookToDelete(null)}
+                disabled={isDeleting}
+                className="px-4 py-2 text-sm bg-slate-700 hover:bg-slate-600 text-slate-200 rounded-lg transition"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => void confirmDelete()}
+                disabled={isDeleting}
+                className="px-4 py-2 text-sm bg-red-500 hover:bg-red-400 text-white font-semibold rounded-lg shadow transition disabled:opacity-50"
+              >
+                {isDeleting ? 'Deleting...' : 'Delete'}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

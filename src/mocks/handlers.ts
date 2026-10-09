@@ -224,6 +224,7 @@ export const handlers = [
     const body = (await request.json().catch(() => ({}))) as {
       name?: string;
       url?: string;
+      active?: boolean;
     };
 
     const errors: Record<string, string[]> = {};
@@ -253,6 +254,77 @@ export const handlers = [
       ...db.webhooks[itemIndex]!,
       name: body.name!.trim(),
       url: body.url!.trim(),
+      active: body.active ?? db.webhooks[itemIndex]!.active,
+    };
+
+    db.webhooks[itemIndex] = updated;
+
+    return HttpResponse.json(updated);
+  }),
+
+  // 10. DELETE /v1/webhooks/:id
+  http.delete('*/api/v1/webhooks/:id', async ({ request, params }) => {
+    const csrfError = requireCsrf(request);
+    if (csrfError) return csrfError;
+
+    const sessionError = requireSession(request);
+    if (sessionError) return sessionError;
+
+    const id = Number(params.id);
+    const itemIndex = db.webhooks.findIndex((w) => w.id === id);
+
+    if (itemIndex === -1) {
+      return notFound(`Webhook with ID ${id} not found.`);
+    }
+
+    db.webhooks.splice(itemIndex, 1);
+
+    return new HttpResponse(null, { status: 204 });
+  }),
+
+  // 11. POST /v1/webhooks/:id/ping
+  http.post('*/api/v1/webhooks/:id/ping', async ({ request, params }) => {
+    const csrfError = requireCsrf(request);
+    if (csrfError) return csrfError;
+
+    const sessionError = requireSession(request);
+    if (sessionError) return sessionError;
+
+    const id = Number(params.id);
+    const item = db.webhooks.find((w) => w.id === id);
+
+    if (!item) {
+      return notFound(`Webhook with ID ${id} not found.`);
+    }
+
+    return HttpResponse.json({
+      success: true,
+      latency_ms: Math.floor(Math.random() * 120) + 25,
+    });
+  }),
+
+  // 12. PATCH /v1/webhooks/:id/toggle
+  http.patch('*/api/v1/webhooks/:id/toggle', async ({ request, params }) => {
+    const csrfError = requireCsrf(request);
+    if (csrfError) return csrfError;
+
+    const sessionError = requireSession(request);
+    if (sessionError) return sessionError;
+
+    const id = Number(params.id);
+    const itemIndex = db.webhooks.findIndex((w) => w.id === id);
+
+    if (itemIndex === -1) {
+      return notFound(`Webhook with ID ${id} not found.`);
+    }
+
+    const body = (await request.json().catch(() => ({}))) as {
+      active?: boolean;
+    };
+
+    const updated = {
+      ...db.webhooks[itemIndex]!,
+      active: body.active ?? !db.webhooks[itemIndex]!.active,
     };
 
     db.webhooks[itemIndex] = updated;
