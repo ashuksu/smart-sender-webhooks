@@ -105,13 +105,16 @@ export function WebhooksListPage() {
               <thead className="bg-slate-900/60 text-xs font-semibold uppercase tracking-wider text-slate-400 border-b border-slate-700">
                 <tr>
                   <th scope="col" className="px-6 py-3">
-                    Name / URL
+                    Name
+                  </th>
+                  <th scope="col" className="px-6 py-3">
+                    URL
                   </th>
                   <th scope="col" className="px-6 py-3">
                     Status
                   </th>
                   <th scope="col" className="px-6 py-3 text-right">
-                    Actions
+                    <span className="sr-only">Actions</span>
                   </th>
                 </tr>
               </thead>
@@ -121,13 +124,16 @@ export function WebhooksListPage() {
                     key={item.id}
                     className="hover:bg-slate-700/30 transition"
                   >
-                    <td className="px-6 py-4">
-                      <div className="font-semibold text-white">
-                        {item.name}
-                      </div>
-                      <div className="text-xs text-slate-400 font-mono truncate max-w-xs">
+                    <td className="px-6 py-4 font-semibold text-white">
+                      {item.name}
+                    </td>
+                    <td className="px-6 py-4 max-w-xs">
+                      <span
+                        className="block truncate font-mono text-xs text-slate-400"
+                        title={item.url}
+                      >
                         {item.url}
-                      </div>
+                      </span>
                     </td>
                     <td className="px-6 py-4">
                       <span
@@ -141,11 +147,9 @@ export function WebhooksListPage() {
                       </span>
                     </td>
                     <td className="px-6 py-4 text-right">
+                      {/* Back-navigation context travels in router state, not in the URL */}
                       <Link
-                        to={{
-                          pathname: `/webhooks/${item.id}`,
-                          search: `?from=${encodeURIComponent(location.search)}`,
-                        }}
+                        to={`/webhooks/${item.id}`}
                         state={{ from: location.search }}
                         className="px-2.5 py-1 bg-sky-500/10 hover:bg-sky-500/20 text-sky-400 text-xs rounded transition"
                       >
