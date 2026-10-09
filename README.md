@@ -1,16 +1,17 @@
-# Smart Sender: Webhooks (test task)
+# Smart Sender: Webhooks
 
-Small React + TypeScript app: login, webhook list, webhook edit.
-The backend is mocked with MSW, following the contract from the task.
+Small React + TypeScript app: sign in, webhook list with pagination and search, webhook edit. The backend is mocked with MSW according to the test task contract.
 
 ## Run
 
 Requirements: Node 22, pnpm.
 
-    pnpm install
-    pnpm dev          # http://localhost:5173
-    pnpm test:run     # automated tests
-    pnpm typecheck && pnpm lint && pnpm build
+```bash
+pnpm install
+pnpm dev            # http://localhost:5173
+pnpm test:run       # automated tests
+pnpm typecheck && pnpm lint && pnpm build
+```
 
 ## Test credentials
 
@@ -19,106 +20,41 @@ Requirements: Node 22, pnpm.
 
 They are pre-filled on the login page.
 
-## Stack
-
-React 19, TypeScript (strict), Vite, MSW, TanStack Query, React Router, React Hook Form + Zod, Zustand, Tailwind CSS, Vitest.
-
-## API contract
-
-The mock API follows the test task contract:
-
-- `GET /csrf`
-- `POST /auth/login`
-- `POST /auth/token/issue`
-- `POST /auth/token/rotate`
-- `POST /auth/token/revoke`
-- `GET /v1/me`
-- `GET /v1/webhooks?page=&limit=&search=`
-- `GET /v1/webhooks/{id}`
-- `PUT /v1/webhooks/{id}`
-
-API requests use the shared client in `src/shared/api/client.ts`. The API base URL defaults to the current origin and can be overridden with `VITE_API_BASE_URL`.
-
-## Project structure (Feature-Sliced Design, lite)
-
-    src/
-      app/        providers, router
-      pages/      webhooks list, webhook edit
-      features/   auth (login, auth store), webhooks (filters, queries)
-      shared/     api client, csrf, session, errors, helpers
-      mocks/      MSW handlers and in-memory db (mock backend)
-
-A monorepo was not needed for this size.
-
 ## Key decisions
 
-- **One HTTP layer** (`shared/api/client.ts`). It adds
-  `X-Requested-With`, the CSRF token, and handles 401 and 419.
-  UI and state code never deal with tokens or retries.
-- **Session.** `device_session_token` lives only in a local variable during
-  login (never in storage, state or URL). `fingerprint` is 32 hex chars,
-  created once and kept in `localStorage`. The session itself is held by the
-  mock (like an HttpOnly cookie).
-- **401 handling.** Parallel 401s share one `rotate` promise. Auth requests
-  (`login`, `issue`, `rotate`, `revoke`) never start a rotate. Each request
-  is retried once. A generation counter prevents a late 401 from starting a
-  second rotate. If rotate fails or a retry gets 401, the session ends: query
-  cache is cleared and the user goes to the login page.
-- **CSRF.** `GET /csrf` runs once (shared promise) before the first API
-  request. The token is sent on POST and PUT. On 419 the token is fetched
-  again and the request is retried once.
-- **URL as source of truth.** `page` and `search` live in the URL, so reload
-  and back/forward work. A new search resets the page. Search input is
-  debounced (300 ms).
-- **Forms.** React Hook Form + Zod. Server 422 errors are shown next to the
-  fields (`applyServerErrors`), for both login and edit.
-- **Server state** is in TanStack Query (with `keepPreviousData` for
-  pagination). Zustand holds only the auth state.
+- **Tokens never reach JS storage.** `device_session_token` lives only in a local variable during login. The session is held by the mock, like an HttpOnly cookie. `fingerprint` (32 hex chars) is created once and stored in `localStorage`.
+- **One HTTP layer** (`src/shared/api/client.ts`) adds `X-Requested-With` and the CSRF token, and handles 401 and 419 retries. UI code never deals with tokens.
+- **Parallel 401s share one rotate.** A single-flight promise and a session generation counter prevent duplicate rotates. Auth endpoints never trigger rotate. A failed rotate or a repeated 401 ends the session.
+- **URL is the source of truth** for `page` and `search`. Search is debounced (300 ms) and resets the page.
+- **Forms:** React Hook Form + Zod on the client; server 422 errors are shown next to the fields.
+- **State:** TanStack Query for server data, Zustand for auth only.
+- **Structure:** Feature-Sliced Design (lite): `app`, `pages`, `features`, `shared`, `mocks`.
 
 ## Tests
 
-Run all automated tests:
+`pnpm test:run` runs 31 tests:
 
-    pnpm test:run
-
-Test coverage:
-
-- `src/shared/api/client.test.ts`
-  - Parallel 401 responses share one token rotation.
-  - Repeated 401 responses end the session.
-  - Failed rotation ends the session without retrying rotation.
-
-- `src/mocks/handlers.test.ts`
-  - Required AJAX and CSRF headers.
-  - Session validation and request-validation order.
-  - Webhook update validation and URL protocol restrictions.
-  - Token rotation for expired and revoked sessions.
-
-- `src/features/webhooks/model/useWebhookFilters.test.ts`
-  - URL parsing for search and page.
-  - Default values and invalid page handling.
-
-- `src/pages/webhook-edit/ui/WebhookEditPage.test.tsx`
-  - Client-side validation and trimming.
-  - Field-level server validation errors.
-  - Successful submission and navigation back to the list.
-
-## Mock notes
-
-- All state is in memory. After a page reload the mock is reset, so you need to log in again. The requested URL (page, search) is restored after login (`returnTo`, checked against open redirects).
-- Session lives 30 seconds; `rotate` extends it by 30 seconds and also works for an expired (not revoked) session.
-- The mock adds a small delay (250 ms) in dev so loading states are visible. Protected API handlers reject requests without `X-Requested-With` to catch client mistakes.
-- MSW is enabled by default in development and disabled by default in production. Set `VITE_ENABLE_MOCKS=true` to force it on or `VITE_ENABLE_MOCKS=false` to disable it.
-- A production build without MSW requires a real API backend. To create a production build for a mock-only demonstration, run `VITE_ENABLE_MOCKS=true pnpm build`.
-
-## Troubleshooting
-
-If the list suddenly shows `HTTP 404` after the tab was idle (or the laptop slept), the browser stopped the MSW service worker. Reload the page and log in again. This only affects the mocked dev environment.
+- Parallel 401 responses share one rotate and both requests are replayed (`src/shared/api/client.test.ts`).
+- Mock contract: headers, CSRF, session and validation order.
+- URL filter parsing and safe `returnTo`.
+- Edit form validation and server errors.
 
 ## Not done
 
 - Session sync between browser tabs.
-- Proactive rotate by timer (we rotate on 401).
-- Runtime validation of API responses.
-- E2E tests (Playwright), i18n.
-- Unsaved changes warning on the edit form.
+- Proactive rotate by timer (rotate happens on 401, as the task requires).
+- Runtime validation of API responses (types are trusted, not parsed).
+- E2E tests (Playwright) and i18n. The required automated test is `client.test.ts`.
+- Unsaved-changes warning on the edit form.
+
+## Production notes
+
+- Demo credentials are pre-filled on the client; remove them in production.
+- The captcha header is accepted by the mock without verification.
+- Mock device tokens use `Math.random`; a real backend must issue them server-side.
+- Server error messages are shown as-is in the list error state; a production build should show a generic message.
+
+## Notes
+
+- Mock state is in memory. Reloading the page resets it, so log in again. The list URL (page, search) is restored after login.
+- MSW is on in development and off in production by default. Override with `VITE_ENABLE_MOCKS=true` or `false`.
