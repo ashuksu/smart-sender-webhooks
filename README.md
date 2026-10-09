@@ -21,8 +21,23 @@ They are pre-filled on the login page.
 
 ## Stack
 
-React 19, TypeScript (strict), Vite, MSW, TanStack Query, React Router,
-React Hook Form + Zod, Zustand, Tailwind CSS, Vitest.
+React 19, TypeScript (strict), Vite, MSW, TanStack Query, React Router, React Hook Form + Zod, Zustand, Tailwind CSS, Vitest.
+
+## API contract
+
+The mock API follows the test task contract:
+
+- `GET /csrf`
+- `POST /auth/login`
+- `POST /auth/token/issue`
+- `POST /auth/token/rotate`
+- `POST /auth/token/revoke`
+- `GET /v1/me`
+- `GET /v1/webhooks?page=&limit=&search=`
+- `GET /v1/webhooks/{id}`
+- `PUT /v1/webhooks/{id}`
+
+API requests use the shared client in `src/shared/api/client.ts`. The API base URL defaults to the current origin and can be overridden with `VITE_API_BASE_URL`.
 
 ## Project structure (Feature-Sliced Design, lite)
 
@@ -69,19 +84,13 @@ A monorepo was not needed for this size.
 
 ## Mock notes
 
-- All state is in memory. After a page reload the mock is reset, so you need
-  to log in again. The requested URL (page, search) is restored after login
-  (`returnTo`, checked against open redirects).
-- Session lives 30 seconds; `rotate` extends it by 30 seconds and also works
-  for an expired (not revoked) session.
-- The mock adds a small delay (250 ms) in dev so loading states are visible,
-  and rejects requests without `X-Requested-With` to catch client mistakes.
+- All state is in memory. After a page reload the mock is reset, so you need to log in again. The requested URL (page, search) is restored after login (`returnTo`, checked against open redirects).
+- Session lives 30 seconds; `rotate` extends it by 30 seconds and also works for an expired (not revoked) session.
+- The mock adds a small delay (250 ms) in dev so loading states are visible. Protected API handlers reject requests without `X-Requested-With` to catch client mistakes.
 
 ## Troubleshooting
 
-If the list suddenly shows `HTTP 404` after the tab was idle (or the laptop
-slept), the browser stopped the MSW service worker. Reload the page and log in
-again. This only affects the mocked dev environment.
+If the list suddenly shows `HTTP 404` after the tab was idle (or the laptop slept), the browser stopped the MSW service worker. Reload the page and log in again. This only affects the mocked dev environment.
 
 ## Not done
 

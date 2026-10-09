@@ -6,7 +6,7 @@ import type { Me } from './contract';
 /** Returns device_session_token; the caller must keep it in memory only. */
 export async function login(email: string, password: string): Promise<string> {
   const response = await apiFetch<{ device_session_token: string }>(
-    '/api/auth/login',
+    '/auth/login',
     {
       method: 'POST',
       auth: false,
@@ -18,7 +18,7 @@ export async function login(email: string, password: string): Promise<string> {
 }
 
 export function issueSession(deviceSessionToken: string): Promise<unknown> {
-  return apiFetch('/api/auth/token/issue', {
+  return apiFetch('/auth/token/issue', {
     method: 'POST',
     auth: false,
     json: {
@@ -29,7 +29,7 @@ export function issueSession(deviceSessionToken: string): Promise<unknown> {
 }
 
 export function revokeSession(): Promise<void> {
-  return apiFetch<void>('/api/auth/token/revoke', {
+  return apiFetch<void>('/auth/token/revoke', {
     method: 'POST',
     auth: false,
     json: { fingerprint: getOrCreateFingerprint() },
@@ -37,5 +37,5 @@ export function revokeSession(): Promise<void> {
 }
 
 export function getMe(signal?: AbortSignal): Promise<Me> {
-  return apiFetch<Me>('/api/v1/me', { signal });
+  return apiFetch<Me>('/v1/me', { signal });
 }

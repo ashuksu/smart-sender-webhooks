@@ -1,4 +1,5 @@
 import { toApiError } from './errors';
+import { resolveApiUrl } from './url';
 
 const CSRF_HEADER = 'X-CSRF-TOKEN';
 
@@ -6,7 +7,7 @@ let cachedToken: string | null = null;
 let inflight: Promise<string> | null = null;
 
 async function requestToken(): Promise<string> {
-  const response = await fetch('/api/csrf', {
+  const response = await fetch(resolveApiUrl('/csrf'), {
     headers: {
       Accept: 'application/json',
       'X-Requested-With': 'XMLHttpRequest',

@@ -19,20 +19,20 @@ export function getWebhooks(
   const search = params.search?.trim();
   if (search) query.set('search', search);
 
-  return apiFetch<WebhookList>(`/api/v1/webhooks?${query.toString()}`, {
+  return apiFetch<WebhookList>(`/v1/webhooks?${query.toString()}`, {
     signal,
   });
 }
 
 export function getWebhook(id: number, signal?: AbortSignal): Promise<Webhook> {
-  return apiFetch<Webhook>(`/api/v1/webhooks/${id}`, { signal });
+  return apiFetch<Webhook>(`/v1/webhooks/${id}`, { signal });
 }
 
 export function updateWebhook(
   id: number,
   data: WebhookUpdateInput
 ): Promise<Webhook> {
-  return apiFetch<Webhook>(`/api/v1/webhooks/${id}`, {
+  return apiFetch<Webhook>(`/v1/webhooks/${id}`, {
     method: 'PUT',
     json: data,
   });

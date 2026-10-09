@@ -19,11 +19,11 @@ describe('apiFetch session handling', () => {
     db.config.rotateDelayMs = 50;
 
     const results = await Promise.all([
-      apiFetch('/api/v1/me'),
-      apiFetch('/api/v1/webhooks?page=1'),
-      apiFetch('/api/v1/webhooks/1'),
-      apiFetch('/api/v1/webhooks?page=2'),
-      apiFetch('/api/v1/me'),
+      apiFetch('/v1/me'),
+      apiFetch('/v1/webhooks?page=1'),
+      apiFetch('/v1/webhooks/1'),
+      apiFetch('/v1/webhooks?page=2'),
+      apiFetch('/v1/me'),
     ]);
 
     expect(results).toHaveLength(5);
@@ -33,9 +33,9 @@ describe('apiFetch session handling', () => {
   });
 
   it('ends the session after a repeated 401 instead of looping', async () => {
-    server.use(http.get('*/api/v1/me', () => unauthorized()));
+    server.use(http.get('*/v1/me', () => unauthorized()));
 
-    const error = await apiFetch('/api/v1/me').catch((e: unknown) => e);
+    const error = await apiFetch('/v1/me').catch((e: unknown) => e);
 
     expect(isApiError(error) && error.status).toBe(401);
     expect(db.stats.rotateCalls).toBe(1);

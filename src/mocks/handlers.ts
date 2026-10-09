@@ -28,7 +28,7 @@ function validateUrl(value: string): string | null {
 
 export const handlers = [
   // GET /csrf
-  http.get('*/api/csrf', () => {
+  http.get('*/csrf', () => {
     db.stats.csrfCalls++;
     return new HttpResponse(null, {
       status: 204,
@@ -37,7 +37,7 @@ export const handlers = [
   }),
 
   // POST /auth/login
-  http.post('*/api/auth/login', async ({ request }) => {
+  http.post('*/auth/login', async ({ request }) => {
     const csrfError = requireCsrf(request);
     if (csrfError) return csrfError;
 
@@ -74,7 +74,7 @@ export const handlers = [
   }),
 
   // POST /auth/token/issue
-  http.post('*/api/auth/token/issue', async ({ request }) => {
+  http.post('*/auth/token/issue', async ({ request }) => {
     const csrfError = requireCsrf(request);
     if (csrfError) return csrfError;
 
@@ -103,7 +103,7 @@ export const handlers = [
   }),
 
   // POST /auth/token/rotate
-  http.post('*/api/auth/token/rotate', async ({ request }) => {
+  http.post('*/auth/token/rotate', async ({ request }) => {
     const csrfError = requireCsrf(request);
     if (csrfError) return csrfError;
 
@@ -126,7 +126,7 @@ export const handlers = [
   }),
 
   // POST /auth/token/revoke
-  http.post('*/api/auth/token/revoke', async ({ request }) => {
+  http.post('*/auth/token/revoke', async ({ request }) => {
     const csrfError = requireCsrf(request);
     if (csrfError) return csrfError;
 
@@ -135,7 +135,7 @@ export const handlers = [
   }),
 
   // GET /v1/me
-  http.get('*/api/v1/me', ({ request }) => {
+  http.get('*/v1/me', ({ request }) => {
     const sessionError = requireSession(request);
     if (sessionError) return sessionError;
 
@@ -143,7 +143,7 @@ export const handlers = [
   }),
 
   // GET /v1/webhooks
-  http.get('*/api/v1/webhooks', async ({ request }) => {
+  http.get('*/v1/webhooks', async ({ request }) => {
     const sessionError = requireSession(request);
     if (sessionError) return sessionError;
     await simulateLatency();
@@ -173,7 +173,7 @@ export const handlers = [
   }),
 
   // GET /v1/webhooks/:id
-  http.get('*/api/v1/webhooks/:id', async ({ request, params }) => {
+  http.get('*/v1/webhooks/:id', async ({ request, params }) => {
     const sessionError = requireSession(request);
     if (sessionError) return sessionError;
     await simulateLatency();
@@ -186,7 +186,7 @@ export const handlers = [
   }),
 
   // PUT /v1/webhooks/:id
-  http.put('*/api/v1/webhooks/:id', async ({ request, params }) => {
+  http.put('*/v1/webhooks/:id', async ({ request, params }) => {
     const csrfError = requireCsrf(request);
     if (csrfError) return csrfError;
 

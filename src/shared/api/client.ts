@@ -7,6 +7,7 @@ import {
   getSessionGeneration,
   isSessionActive,
 } from './session';
+import { resolveApiUrl } from './url';
 
 export interface ApiRequestOptions {
   method?: 'GET' | 'POST' | 'PUT';
@@ -23,7 +24,7 @@ let rotatePromise: Promise<void> | null = null;
 
 /** Single-flight rotate: every concurrent caller awaits the same promise. */
 function rotateSession(): Promise<void> {
-  rotatePromise ??= apiFetch<unknown>('/api/auth/token/rotate', {
+  rotatePromise ??= apiFetch<unknown>('/auth/token/rotate', {
     method: 'POST',
     json: { fingerprint: getOrCreateFingerprint() },
     auth: false,
@@ -65,7 +66,7 @@ export async function apiFetch<T>(
     if (json !== undefined) headers.set('Content-Type', 'application/json');
     if (UNSAFE_METHODS.has(method)) headers.set('X-CSRF-TOKEN', csrfToken);
 
-    const response = await fetch(path, {
+    const response = await fetch(resolveApiUrl(path), {
       method,
       headers,
       signal,
