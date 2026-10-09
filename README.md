@@ -1,73 +1,92 @@
-# React + TypeScript + Vite
+# Smart Sender: Webhooks (test task)
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Small React + TypeScript app: login, webhook list, webhook edit.
+The backend is mocked with MSW, following the contract from the task.
 
-Currently, two official plugins are available:
+## Run
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+Requirements: Node 22, pnpm.
 
-## React Compiler
+    pnpm install
+    pnpm dev          # http://localhost:5173
+    pnpm test:run     # automated tests
+    pnpm typecheck && pnpm lint && pnpm build
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Test credentials
 
-## Expanding the ESLint configuration
+- Email: `admin@smartsender.com`
+- Password: `password123`
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+They are pre-filled on the login page.
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+## Stack
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+React 19, TypeScript (strict), Vite, MSW, TanStack Query, React Router,
+React Hook Form + Zod, Zustand, Tailwind CSS, Vitest.
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-]);
-```
+## Project structure (Feature-Sliced Design, lite)
 
-You can also install [eslint-plugin-react-x](https://npmx.dev/package/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://npmx.dev/package/eslint-plugin-react-dom) for React-specific lint rules:
+    src/
+      app/        providers, router
+      pages/      webhooks list, webhook edit
+      features/   auth (login, auth store), webhooks (filters, queries)
+      shared/     api client, csrf, session, errors, helpers
+      mocks/      MSW handlers and in-memory db (mock backend)
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x';
-import reactDom from 'eslint-plugin-react-dom';
+A monorepo was not needed for this size.
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-]);
-```
+## Key decisions
+
+- **One HTTP layer** (`shared/api/client.ts`). It adds
+  `X-Requested-With`, the CSRF token, and handles 401 and 419.
+  UI and state code never deal with tokens or retries.
+- **Session.** `device_session_token` lives only in a local variable during
+  login (never in storage, state or URL). `fingerprint` is 32 hex chars,
+  created once and kept in `localStorage`. The session itself is held by the
+  mock (like an HttpOnly cookie).
+- **401 handling.** Parallel 401s share one `rotate` promise. Auth requests
+  (`login`, `issue`, `rotate`, `revoke`) never start a rotate. Each request
+  is retried once. A generation counter prevents a late 401 from starting a
+  second rotate. If rotate fails or a retry gets 401, the session ends: query
+  cache is cleared and the user goes to the login page.
+- **CSRF.** `GET /csrf` runs once (shared promise) before the first API
+  request. The token is sent on POST and PUT. On 419 the token is fetched
+  again and the request is retried once.
+- **URL as source of truth.** `page` and `search` live in the URL, so reload
+  and back/forward work. A new search resets the page. Search input is
+  debounced (300 ms).
+- **Forms.** React Hook Form + Zod. Server 422 errors are shown next to the
+  fields (`applyServerErrors`), for both login and edit.
+- **Server state** is in TanStack Query (with `keepPreviousData` for
+  pagination). Zustand holds only the auth state.
+
+## Tests
+
+`src/shared/api/client.test.ts`:
+
+1. Parallel requests with 401 use one `rotate`, then all succeed.
+2. A repeated 401 ends the session (no retry loop).
+
+## Mock notes
+
+- All state is in memory. After a page reload the mock is reset, so you need
+  to log in again. The requested URL (page, search) is restored after login
+  (`returnTo`, checked against open redirects).
+- Session lives 30 seconds; `rotate` extends it by 30 seconds and also works
+  for an expired (not revoked) session.
+- The mock adds a small delay (250 ms) in dev so loading states are visible,
+  and rejects requests without `X-Requested-With` to catch client mistakes.
+
+## Troubleshooting
+
+If the list suddenly shows `HTTP 404` after the tab was idle (or the laptop
+slept), the browser stopped the MSW service worker. Reload the page and log in
+again. This only affects the mocked dev environment.
+
+## Not done
+
+- Session sync between browser tabs.
+- Proactive rotate by timer (we rotate on 401).
+- Runtime validation of API responses.
+- E2E tests (Playwright), i18n.
+- Unsaved changes warning on the edit form.
