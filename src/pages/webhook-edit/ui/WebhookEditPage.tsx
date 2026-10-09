@@ -33,13 +33,14 @@ const inputClass =
 const labelClass =
   'block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1';
 
-/** Reads the list query string passed by the list page via router state. */
+/** Reads the list query string (e.g. "?page=2") passed by the list page via router state. */
 function getBackSearch(state: unknown): string {
   if (
     typeof state === 'object' &&
     state !== null &&
     'from' in state &&
-    typeof state.from === 'string'
+    typeof state.from === 'string' &&
+    state.from.startsWith('?')
   ) {
     return state.from;
   }
