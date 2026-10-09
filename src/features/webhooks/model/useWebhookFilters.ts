@@ -11,15 +11,21 @@ function parsePage(value: string | null): number {
   return Number.isInteger(page) && page > 0 ? page : 1;
 }
 
+export function parseWebhookFilters(
+  searchParams: URLSearchParams
+): WebhookFilterState {
+  return {
+    page: parsePage(searchParams.get('page')),
+    search: searchParams.get('search') ?? '',
+  };
+}
+
 /** URL is the single source of truth for page and search. */
 export function useWebhookFilters() {
   const [searchParams, setSearchParams] = useSearchParams();
 
   const filters = useMemo<WebhookFilterState>(
-    () => ({
-      page: parsePage(searchParams.get('page')),
-      search: searchParams.get('search') ?? '',
-    }),
+    () => parseWebhookFilters(searchParams),
     [searchParams]
   );
 

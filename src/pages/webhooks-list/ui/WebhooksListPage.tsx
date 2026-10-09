@@ -142,7 +142,10 @@ export function WebhooksListPage() {
                     </td>
                     <td className="px-6 py-4 text-right">
                       <Link
-                        to={`/webhooks/${item.id}`}
+                        to={{
+                          pathname: `/webhooks/${item.id}`,
+                          search: `?from=${encodeURIComponent(location.search)}`,
+                        }}
                         state={{ from: location.search }}
                         className="px-2.5 py-1 bg-sky-500/10 hover:bg-sky-500/20 text-sky-400 text-xs rounded transition"
                       >

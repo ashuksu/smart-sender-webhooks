@@ -49,7 +49,13 @@ function getBackSearch(state: unknown): string {
 export function WebhookEditPage() {
   const { id } = useParams<{ id: string }>();
   const location = useLocation();
-  const backUrl = `/webhooks${getBackSearch(location.state)}`;
+
+  const searchFromUrl = new URLSearchParams(location.search).get('from');
+  const backSearch =
+    getBackSearch(location.state) ||
+    (searchFromUrl?.startsWith('?') ? searchFromUrl : '');
+
+  const backUrl = `/webhooks${backSearch}`;
 
   const { data: webhook, isLoading, error } = useWebhookDetailQuery(Number(id));
 
