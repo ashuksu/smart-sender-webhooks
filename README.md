@@ -77,16 +77,39 @@ A monorepo was not needed for this size.
 
 ## Tests
 
-`src/shared/api/client.test.ts`:
+Run all automated tests:
 
-1. Parallel requests with 401 use one `rotate`, then all succeed.
-2. A repeated 401 ends the session (no retry loop).
+    pnpm test:run
+
+Test coverage:
+
+- `src/shared/api/client.test.ts`
+  - Parallel 401 responses share one token rotation.
+  - Repeated 401 responses end the session.
+  - Failed rotation ends the session without retrying rotation.
+
+- `src/mocks/handlers.test.ts`
+  - Required AJAX and CSRF headers.
+  - Session validation and request-validation order.
+  - Webhook update validation and URL protocol restrictions.
+  - Token rotation for expired and revoked sessions.
+
+- `src/features/webhooks/model/useWebhookFilters.test.ts`
+  - URL parsing for search and page.
+  - Default values and invalid page handling.
+
+- `src/pages/webhook-edit/ui/WebhookEditPage.test.tsx`
+  - Client-side validation and trimming.
+  - Field-level server validation errors.
+  - Successful submission and navigation back to the list.
 
 ## Mock notes
 
 - All state is in memory. After a page reload the mock is reset, so you need to log in again. The requested URL (page, search) is restored after login (`returnTo`, checked against open redirects).
 - Session lives 30 seconds; `rotate` extends it by 30 seconds and also works for an expired (not revoked) session.
 - The mock adds a small delay (250 ms) in dev so loading states are visible. Protected API handlers reject requests without `X-Requested-With` to catch client mistakes.
+- MSW is enabled by default in development and disabled by default in production. Set `VITE_ENABLE_MOCKS=true` to force it on or `VITE_ENABLE_MOCKS=false` to disable it.
+- A production build without MSW requires a real API backend. To create a production build for a mock-only demonstration, run `VITE_ENABLE_MOCKS=true pnpm build`.
 
 ## Troubleshooting
 

@@ -67,7 +67,7 @@ describe('MSW API contract', () => {
     const response = await fetch(`${BASE_URL}/v1/webhooks/1`, {
       method: 'PUT',
       headers: headers(true),
-      body: JSON.stringify({ name: '', url: 'not-a-url' }),
+      body: JSON.stringify({ name: '   ', url: 'not-a-url' }),
     });
 
     expect(response.status).toBe(422);
@@ -106,5 +106,51 @@ describe('MSW API contract', () => {
     });
 
     expect(response.status).toBe(400);
+  });
+
+  it.each(['ftp://example.com/hook', 'javascript:alert(1)'])(
+    'rejects unsupported URL protocol: %s',
+    async (url) => {
+      db.issueSession(getOrCreateFingerprint());
+
+      const response = await fetch(`${BASE_URL}/v1/webhooks/1`, {
+        method: 'PUT',
+        headers: headers(true),
+        body: JSON.stringify({
+          name: 'Valid name',
+          url,
+        }),
+      });
+
+      expect(response.status).toBe(422);
+
+      const body = await readError(response);
+
+      expect(body.error.type).toBe('ValidationException');
+      expect(body.error.payload).toHaveProperty('url');
+    }
+  );
+
+  it('trims the name before persisting a valid update', async () => {
+    db.issueSession(getOrCreateFingerprint());
+
+    const response = await fetch(`${BASE_URL}/v1/webhooks/1`, {
+      method: 'PUT',
+      headers: headers(true),
+      body: JSON.stringify({
+        name: '  Updated endpoint  ',
+        url: 'http://localhost:3000/webhook',
+      }),
+    });
+
+    expect(response.status).toBe(200);
+
+    const body = (await response.json()) as {
+      name: string;
+      url: string;
+    };
+
+    expect(body.name).toBe('Updated endpoint');
+    expect(body.url).toBe('http://localhost:3000/webhook');
   });
 });

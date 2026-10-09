@@ -6,14 +6,21 @@ import { router } from '@/app/router';
 import './index.css';
 
 async function enableMocking() {
-  if (import.meta.env.VITE_ENABLE_MOCKS === 'false') {
+  const mockMode = import.meta.env.VITE_ENABLE_MOCKS;
+  const shouldEnableMocking =
+    mockMode === 'true' || (mockMode !== 'false' && import.meta.env.DEV);
+
+  if (!shouldEnableMocking) {
     return;
   }
+
   const [{ worker }, { db }] = await Promise.all([
     import('./mocks/browser'),
     import('./mocks/db'),
   ]);
+
   db.config.latencyMs = 250; // makes loading states visible in dev
+
   return worker.start();
 }
 
