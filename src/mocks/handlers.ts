@@ -1,7 +1,7 @@
 import { http, HttpResponse, delay } from 'msw';
 import type { Webhook } from '@/shared/api/contract';
 import { db } from './db';
-import { requireCsrf, requireSession } from './guards';
+import { requireAjaxHeader, requireCsrf, requireSession } from './guards';
 import { badRequest, validationFailed, notFound } from './errors';
 import {
   TEST_EMAIL,
@@ -28,8 +28,13 @@ function validateUrl(value: string): string | null {
 
 export const handlers = [
   // GET /csrf
-  http.get('*/csrf', () => {
+  http.get('*/csrf', ({ request }) => {
+    const ajaxError = requireAjaxHeader(request);
+
+    if (ajaxError) return ajaxError;
+
     db.stats.csrfCalls++;
+
     return new HttpResponse(null, {
       status: 204,
       headers: { 'X-CSRF-TOKEN': CSRF_TOKEN },
