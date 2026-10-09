@@ -9,7 +9,11 @@ async function enableMocking() {
   if (import.meta.env.VITE_ENABLE_MOCKS === 'false') {
     return;
   }
-  const { worker } = await import('./mocks/browser');
+  const [{ worker }, { db }] = await Promise.all([
+    import('./mocks/browser'),
+    import('./mocks/db'),
+  ]);
+  db.config.latencyMs = 250; // makes loading states visible in dev
   return worker.start();
 }
 

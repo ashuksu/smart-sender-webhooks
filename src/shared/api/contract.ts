@@ -40,13 +40,9 @@ export interface WebhookListParams {
   page?: number;
   limit?: number;
   search?: string;
-  status?: 'all' | 'active' | 'inactive';
 }
-
-export type WebhookListResponse = WebhookList;
 
 export interface WebhookUpdateInput {
   name: string;
   url: string;
-  active?: boolean;
 }

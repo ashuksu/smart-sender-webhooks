@@ -26,7 +26,7 @@ async function requestToken(): Promise<string> {
 export function getCsrfToken(): Promise<string> {
   if (cachedToken) return Promise.resolve(cachedToken);
   inflight ??= requestToken().finally(() => {
-    inflight = null; // Объяснение: сбрасываем и при ошибке, иначе следующая попытка зависнет на старом промисе
+    inflight = null; // reset also on failure, otherwise the next attempt would await a stale promise
   });
   return inflight;
 }

@@ -5,7 +5,7 @@ dist-ssr
 build
 .tmp
 
-# MSW Service Worker (генерується автотично)
+# MSW Service Worker (generated)
 public/mockServiceWorker.js
 
 # Logs & Environment

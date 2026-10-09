@@ -1,8 +1,8 @@
-import { createBrowserRouter, Navigate } from 'react-router';
+import { createBrowserRouter, Link, Navigate } from 'react-router';
 import { LoginForm } from '@/features/auth/ui/LoginForm';
 import { RequireAuth } from '@/features/auth/ui/RequireAuth';
-import { WebhooksListPage } from '@/features/webhooks/ui/WebhooksListPage';
-import { WebhookEditPage } from '@/features/webhooks/ui/WebhookEditPage';
+import { WebhooksListPage } from '@/pages/webhooks-list/ui/WebhooksListPage';
+import { WebhookEditPage } from '@/pages/webhook-edit/ui/WebhookEditPage';
 import App from '@/App';
 
 export const router = createBrowserRouter([
@@ -39,9 +39,9 @@ export const router = createBrowserRouter([
         <div className="text-center">
           <h1 className="text-4xl font-bold text-sky-400 mb-2">404</h1>
           <p className="text-slate-400 mb-4">Page not found</p>
-          <a href="/webhooks" className="text-sky-400 hover:underline">
+          <Link to="/webhooks" className="text-sky-400 hover:underline">
             Go to Webhooks
-          </a>
+          </Link>
         </div>
       </div>
     ),

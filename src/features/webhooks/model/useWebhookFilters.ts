@@ -4,58 +4,46 @@ import { useCallback, useMemo } from 'react';
 export interface WebhookFilterState {
   page: number;
   search: string;
-  status: 'all' | 'active' | 'inactive';
 }
 
+function parsePage(value: string | null): number {
+  const page = Number.parseInt(value ?? '', 10);
+  return Number.isInteger(page) && page > 0 ? page : 1;
+}
+
+/** URL is the single source of truth for page and search. */
 export function useWebhookFilters() {
   const [searchParams, setSearchParams] = useSearchParams();
 
-  const filters = useMemo<WebhookFilterState>(() => {
-    const page = Math.max(1, parseInt(searchParams.get('page') || '1', 10));
-    const search = searchParams.get('search') || '';
-    const statusParam = searchParams.get('status');
-    const status =
-      statusParam === 'active' || statusParam === 'inactive'
-        ? statusParam
-        : 'all';
-
-    return { page, search, status };
-  }, [searchParams]);
+  const filters = useMemo<WebhookFilterState>(
+    () => ({
+      page: parsePage(searchParams.get('page')),
+      search: searchParams.get('search') ?? '',
+    }),
+    [searchParams]
+  );
 
   const setFilter = useCallback(
     (updates: Partial<WebhookFilterState>) => {
-      setSearchParams(
-        (prev) => {
-          const next = new URLSearchParams(prev);
+      setSearchParams((prev) => {
+        const next = new URLSearchParams(prev);
 
-          if (updates.page !== undefined) {
-            if (updates.page <= 1) next.delete('page');
-            else next.set('page', String(updates.page));
-          }
+        if (updates.search !== undefined) {
+          if (updates.search) next.set('search', updates.search);
+          else next.delete('search');
+          next.delete('page');
+        }
 
-          if (updates.search !== undefined) {
-            if (!updates.search) next.delete('search');
-            else next.set('search', updates.search);
-            if (updates.page === undefined) next.delete('page');
-          }
+        if (updates.page !== undefined) {
+          if (updates.page > 1) next.set('page', String(updates.page));
+          else next.delete('page');
+        }
 
-          if (updates.status !== undefined) {
-            if (updates.status === 'all') next.delete('status');
-            else next.set('status', updates.status);
-            if (updates.page === undefined) next.delete('page');
-          }
-
-          return next;
-        },
-        { replace: true }
-      );
+        return next;
+      });
     },
     [setSearchParams]
   );
 
-  const resetFilters = useCallback(() => {
-    setSearchParams(new URLSearchParams(), { replace: true });
-  }, [setSearchParams]);
-
-  return { filters, setFilter, resetFilters };
+  return { filters, setFilter };
 }

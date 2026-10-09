@@ -29,7 +29,7 @@ describe('apiFetch session handling', () => {
     expect(results).toHaveLength(5);
     expect(results[0]).toHaveProperty('email');
     expect(db.stats.rotateCalls).toBe(1);
-    expect(db.stats.csrfCalls).toBe(1); // CSRF тоже single-flight
+    expect(db.stats.csrfCalls).toBe(1); // CSRF is single-flight too
   });
 
   it('ends the session after a repeated 401 instead of looping', async () => {

@@ -1,4 +1,5 @@
 import { http, HttpResponse, delay } from 'msw';
+import type { Webhook } from '@/shared/api/contract';
 import { db } from './db';
 import { requireCsrf, requireSession } from './guards';
 import { badRequest, validationFailed, notFound } from './errors';
@@ -9,19 +10,33 @@ import {
   CAPTCHA_HEADER,
 } from './constants';
 
+async function simulateLatency() {
+  if (db.config.latencyMs > 0) await delay(db.config.latencyMs);
+}
+
+function validateUrl(value: string): string | null {
+  if (!value) return 'The url field is required.';
+  try {
+    const { protocol } = new URL(value);
+    return protocol === 'http:' || protocol === 'https:'
+      ? null
+      : 'The url must be a valid HTTP/HTTPS URL.';
+  } catch {
+    return 'The url must be a valid URL.';
+  }
+}
+
 export const handlers = [
-  // 1. GET /csrf
+  // GET /csrf
   http.get('*/api/csrf', () => {
     db.stats.csrfCalls++;
     return new HttpResponse(null, {
       status: 204,
-      headers: {
-        'X-CSRF-TOKEN': CSRF_TOKEN,
-      },
+      headers: { 'X-CSRF-TOKEN': CSRF_TOKEN },
     });
   }),
 
-  // 2. POST /auth/login
+  // POST /auth/login
   http.post('*/api/auth/login', async ({ request }) => {
     const csrfError = requireCsrf(request);
     if (csrfError) return csrfError;
@@ -49,9 +64,7 @@ export const handlers = [
     }
 
     if (body.email !== TEST_EMAIL || body.password !== TEST_PASSWORD) {
-      return validationFailed({
-        password: ['Invalid email or password.'],
-      });
+      return validationFailed({ password: ['Invalid email or password.'] });
     }
 
     const deviceToken = `dt_${Math.random().toString(36).substring(2)}_${Date.now()}`;
@@ -60,7 +73,7 @@ export const handlers = [
     return HttpResponse.json({ device_session_token: deviceToken });
   }),
 
-  // 3. POST /auth/token/issue
+  // POST /auth/token/issue
   http.post('*/api/auth/token/issue', async ({ request }) => {
     const csrfError = requireCsrf(request);
     if (csrfError) return csrfError;
@@ -86,10 +99,10 @@ export const handlers = [
     db.pendingDeviceTokens.delete(body.device_session_token);
     db.issueSession(body.fingerprint);
 
-    return HttpResponse.json({ success: true }, { status: 200 });
+    return HttpResponse.json({ success: true });
   }),
 
-  // 4. POST /auth/token/rotate
+  // POST /auth/token/rotate
   http.post('*/api/auth/token/rotate', async ({ request }) => {
     const csrfError = requireCsrf(request);
     if (csrfError) return csrfError;
@@ -107,27 +120,21 @@ export const handlers = [
     if (!body.fingerprint || db.session?.fingerprint !== body.fingerprint) {
       return badRequest('No active session to rotate.');
     }
-    if (!db.rotateSession()) {
-      return badRequest('No active session to rotate.');
-    }
+    db.rotateSession();
 
-    return HttpResponse.json({ success: true }, { status: 200 });
+    return HttpResponse.json({ success: true });
   }),
 
-  // 5. POST /auth/token/revoke
+  // POST /auth/token/revoke
   http.post('*/api/auth/token/revoke', async ({ request }) => {
     const csrfError = requireCsrf(request);
     if (csrfError) return csrfError;
 
-    if (db.session) {
-      db.session.revoked = true;
-      db.session = null;
-    }
-
+    db.session = null;
     return new HttpResponse(null, { status: 204 });
   }),
 
-  // 6. GET /v1/me
+  // GET /v1/me
   http.get('*/api/v1/me', ({ request }) => {
     const sessionError = requireSession(request);
     if (sessionError) return sessionError;
@@ -135,199 +142,77 @@ export const handlers = [
     return HttpResponse.json(db.currentUser);
   }),
 
-  // 7. GET /v1/webhooks
-  http.get('*/api/v1/webhooks', ({ request }) => {
+  // GET /v1/webhooks
+  http.get('*/api/v1/webhooks', async ({ request }) => {
     const sessionError = requireSession(request);
     if (sessionError) return sessionError;
+    await simulateLatency();
 
     const url = new URL(request.url);
     const pageParam = parseInt(url.searchParams.get('page') || '1', 10);
     const limitParam = parseInt(url.searchParams.get('limit') || '10', 10);
-    const searchParam = (url.searchParams.get('search') || '')
-      .trim()
-      .toLowerCase();
-    const statusParam = url.searchParams.get('status');
-    const activeParam = url.searchParams.get('active');
+    const search = (url.searchParams.get('search') || '').trim().toLowerCase();
 
     const limit = isNaN(limitParam) || limitParam <= 0 ? 10 : limitParam;
-    let filtered = db.webhooks;
-
-    if (searchParam) {
-      filtered = filtered.filter((item) =>
-        item.name.toLowerCase().includes(searchParam)
-      );
-    }
-
-    if (statusParam && statusParam !== 'all') {
-      filtered = filtered.filter((item) =>
-        statusParam === 'active' ? item.active : !item.active
-      );
-    } else if (activeParam !== null) {
-      filtered = filtered.filter((item) =>
-        activeParam === 'true' ? item.active : !item.active
-      );
-    }
+    const filtered = search
+      ? db.webhooks.filter((item) => item.name.toLowerCase().includes(search))
+      : db.webhooks;
 
     const total = filtered.length;
     const lastPage = Math.max(1, Math.ceil(total / limit));
     const currentPage = isNaN(pageParam) || pageParam < 1 ? 1 : pageParam;
-
     const start = (currentPage - 1) * limit;
-    const paginatedData =
-      currentPage > lastPage ? [] : filtered.slice(start, start + limit);
 
     return HttpResponse.json({
-      data: paginatedData,
+      data: currentPage > lastPage ? [] : filtered.slice(start, start + limit),
       paging: {
-        pages: {
-          current: currentPage,
-          last: lastPage,
-        },
-        results: {
-          total,
-          limitation: limit,
-        },
+        pages: { current: currentPage, last: lastPage },
+        results: { total, limitation: limit },
       },
     });
   }),
 
-  // 8. GET /v1/webhooks/:id
-  http.get('*/api/v1/webhooks/:id', ({ request, params }) => {
+  // GET /v1/webhooks/:id
+  http.get('*/api/v1/webhooks/:id', async ({ request, params }) => {
     const sessionError = requireSession(request);
     if (sessionError) return sessionError;
+    await simulateLatency();
 
     const id = Number(params.id);
     const item = db.webhooks.find((w) => w.id === id);
-
-    if (!item) {
-      return notFound(`Webhook with ID ${id} not found.`);
-    }
+    if (!item) return notFound(`Webhook with ID ${id} not found.`);
 
     return HttpResponse.json(item);
   }),
 
-  // 9. PUT /v1/webhooks/:id
+  // PUT /v1/webhooks/:id
   http.put('*/api/v1/webhooks/:id', async ({ request, params }) => {
     const csrfError = requireCsrf(request);
     if (csrfError) return csrfError;
 
     const sessionError = requireSession(request);
     if (sessionError) return sessionError;
+    await simulateLatency();
 
     const id = Number(params.id);
-    const itemIndex = db.webhooks.findIndex((w) => w.id === id);
-
-    if (itemIndex === -1) {
-      return notFound(`Webhook with ID ${id} not found.`);
-    }
+    const current = db.webhooks.find((w) => w.id === id);
+    if (!current) return notFound(`Webhook with ID ${id} not found.`);
 
     const body = (await request.json().catch(() => ({}))) as {
       name?: string;
       url?: string;
-      active?: boolean;
     };
+    const name = body.name?.trim() ?? '';
+    const url = body.url?.trim() ?? '';
 
     const errors: Record<string, string[]> = {};
+    if (!name) errors.name = ['The name field is required.'];
+    const urlError = validateUrl(url);
+    if (urlError) errors.url = [urlError];
+    if (Object.keys(errors).length > 0) return validationFailed(errors);
 
-    if (!body.name || body.name.trim() === '') {
-      errors.name = ['The name field is required.'];
-    }
-
-    if (!body.url || body.url.trim() === '') {
-      errors.url = ['The url field is required.'];
-    } else {
-      try {
-        const parsedUrl = new URL(body.url);
-        if (parsedUrl.protocol !== 'http:' && parsedUrl.protocol !== 'https:') {
-          errors.url = ['The url must be a valid HTTP/HTTPS URL.'];
-        }
-      } catch {
-        errors.url = ['The url must be a valid URL.'];
-      }
-    }
-
-    if (Object.keys(errors).length > 0) {
-      return validationFailed(errors);
-    }
-
-    const updated = {
-      ...db.webhooks[itemIndex]!,
-      name: body.name!.trim(),
-      url: body.url!.trim(),
-      active: body.active ?? db.webhooks[itemIndex]!.active,
-    };
-
-    db.webhooks[itemIndex] = updated;
-
-    return HttpResponse.json(updated);
-  }),
-
-  // 10. DELETE /v1/webhooks/:id
-  http.delete('*/api/v1/webhooks/:id', async ({ request, params }) => {
-    const csrfError = requireCsrf(request);
-    if (csrfError) return csrfError;
-
-    const sessionError = requireSession(request);
-    if (sessionError) return sessionError;
-
-    const id = Number(params.id);
-    const itemIndex = db.webhooks.findIndex((w) => w.id === id);
-
-    if (itemIndex === -1) {
-      return notFound(`Webhook with ID ${id} not found.`);
-    }
-
-    db.webhooks.splice(itemIndex, 1);
-
-    return new HttpResponse(null, { status: 204 });
-  }),
-
-  // 11. POST /v1/webhooks/:id/ping
-  http.post('*/api/v1/webhooks/:id/ping', async ({ request, params }) => {
-    const csrfError = requireCsrf(request);
-    if (csrfError) return csrfError;
-
-    const sessionError = requireSession(request);
-    if (sessionError) return sessionError;
-
-    const id = Number(params.id);
-    const item = db.webhooks.find((w) => w.id === id);
-
-    if (!item) {
-      return notFound(`Webhook with ID ${id} not found.`);
-    }
-
-    return HttpResponse.json({
-      success: true,
-      latency_ms: Math.floor(Math.random() * 120) + 25,
-    });
-  }),
-
-  // 12. PATCH /v1/webhooks/:id/toggle
-  http.patch('*/api/v1/webhooks/:id/toggle', async ({ request, params }) => {
-    const csrfError = requireCsrf(request);
-    if (csrfError) return csrfError;
-
-    const sessionError = requireSession(request);
-    if (sessionError) return sessionError;
-
-    const id = Number(params.id);
-    const itemIndex = db.webhooks.findIndex((w) => w.id === id);
-
-    if (itemIndex === -1) {
-      return notFound(`Webhook with ID ${id} not found.`);
-    }
-
-    const body = (await request.json().catch(() => ({}))) as {
-      active?: boolean;
-    };
-
-    const updated = {
-      ...db.webhooks[itemIndex]!,
-      active: body.active ?? !db.webhooks[itemIndex]!.active,
-    };
-
-    db.webhooks[itemIndex] = updated;
+    const updated: Webhook = { ...current, name, url };
+    db.webhooks = db.webhooks.map((w) => (w.id === id ? updated : w));
 
     return HttpResponse.json(updated);
   }),

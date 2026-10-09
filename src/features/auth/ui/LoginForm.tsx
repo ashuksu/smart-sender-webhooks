@@ -1,7 +1,7 @@
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Navigate, useNavigate, useSearchParams } from 'react-router';
+import { Navigate, useSearchParams } from 'react-router';
 import { DEMO_EMAIL, DEMO_PASSWORD } from '@/shared/api/constants';
 import { applyServerErrors } from '@/shared/lib/applyServerErrors';
 import { sanitizeReturnTo } from '@/shared/lib/sanitizeReturnTo';
@@ -22,7 +22,6 @@ const labelClass =
 export function LoginForm() {
   const login = useAuthStore((state) => state.login);
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
-  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
   const returnTo = sanitizeReturnTo(searchParams.get('returnTo'));
@@ -44,7 +43,6 @@ export function LoginForm() {
   const onSubmit = handleSubmit(async (values) => {
     try {
       await login(values);
-      navigate(returnTo, { replace: true });
     } catch (error) {
       applyServerErrors(error, setError, ['email', 'password']);
     }

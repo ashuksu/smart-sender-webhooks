@@ -9,7 +9,7 @@ import {
 } from './session';
 
 export interface ApiRequestOptions {
-  method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
+  method?: 'GET' | 'POST' | 'PUT';
   json?: unknown;
   headers?: HeadersInit;
   signal?: AbortSignal;
@@ -17,7 +17,7 @@ export interface ApiRequestOptions {
   auth?: boolean;
 }
 
-const UNSAFE_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
+const UNSAFE_METHODS = new Set(['POST', 'PUT']);
 
 let rotatePromise: Promise<void> | null = null;
 

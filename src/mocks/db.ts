@@ -4,7 +4,6 @@ import { TEST_EMAIL, SESSION_TTL_MS } from './constants';
 export interface SessionState {
   fingerprint: string;
   expiresAt: number;
-  revoked: boolean;
 }
 
 const initialWebhooks: Webhook[] = Array.from({ length: 28 }, (_, index) => {
@@ -31,9 +30,9 @@ class MockDb {
   public currentUser: Me = {
     id: 1,
     email: TEST_EMAIL,
-    first_name: 'Denys',
+    first_name: 'Admin',
     last_name: 'Developer',
-    name: 'Denys Developer',
+    name: 'Admin Developer',
   };
 
   public webhooks: Webhook[] = [...initialWebhooks];
@@ -41,65 +40,40 @@ class MockDb {
   // device_session_token -> fingerprint
   public pendingDeviceTokens = new Map<string, string>();
 
-  // Active session
+  // Issued session; null before issue and after revoke
   public session: SessionState | null = null;
 
   // Statistics for automated testing
-  public stats = {
-    rotateCalls: 0,
-    csrfCalls: 0,
-  };
+  public stats = { rotateCalls: 0, csrfCalls: 0 };
 
-  // Delay config
   public config = {
     rotateDelayMs: 0,
+    latencyMs: 0,
   };
-
-  private mockTime: number | null = null;
-
-  public now(): number {
-    return this.mockTime ?? Date.now();
-  }
-
-  public setMockTime(time: number | null) {
-    this.mockTime = time;
-  }
 
   public resetDb() {
     this.webhooks = [...initialWebhooks];
     this.pendingDeviceTokens.clear();
     this.session = null;
     this.stats = { rotateCalls: 0, csrfCalls: 0 };
-    this.config = { rotateDelayMs: 0 };
-    this.mockTime = null;
-  }
-
-  public expireSession() {
-    if (this.session) {
-      this.session.expiresAt = this.now() - 1;
-    }
+    this.config = { rotateDelayMs: 0, latencyMs: 0 };
   }
 
   public issueSession(fingerprint: string) {
-    this.session = {
-      fingerprint,
-      expiresAt: this.now() + SESSION_TTL_MS,
-      revoked: false,
-    };
+    this.session = { fingerprint, expiresAt: Date.now() + SESSION_TTL_MS };
   }
 
+  public expireSession() {
+    if (this.session) this.session.expiresAt = Date.now() - 1;
+  }
+
+  /** Extends the session; works for an expired (but not revoked) session. */
   public rotateSession() {
-    if (!this.session || this.session.revoked) {
-      return false;
-    }
-    this.session.expiresAt = this.now() + SESSION_TTL_MS;
-    return true;
+    if (this.session) this.session.expiresAt = Date.now() + SESSION_TTL_MS;
   }
 
-  public isSessionValid(fingerprint?: string): boolean {
-    if (!this.session || this.session.revoked) return false;
-    if (fingerprint && this.session.fingerprint !== fingerprint) return false;
-    return this.session.expiresAt > this.now();
+  public isSessionValid(): boolean {
+    return this.session !== null && this.session.expiresAt > Date.now();
   }
 }
 

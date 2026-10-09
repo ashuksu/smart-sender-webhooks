@@ -1,28 +1,27 @@
 import { apiFetch } from './client';
 import type {
   Webhook,
+  WebhookList,
   WebhookListParams,
-  WebhookListResponse,
   WebhookUpdateInput,
 } from './contract';
+
+export const WEBHOOKS_PAGE_SIZE = 10;
 
 export function getWebhooks(
   params: WebhookListParams = {},
   signal?: AbortSignal
-): Promise<WebhookListResponse> {
-  const query = new URLSearchParams();
-  if (params.page) query.set('page', String(params.page));
-  if (params.limit) query.set('limit', String(params.limit));
-  if (params.search) query.set('search', params.search);
-  if (params.status && params.status !== 'all') {
-    query.set('status', params.status);
-    query.set('active', params.status === 'active' ? 'true' : 'false');
-  }
+): Promise<WebhookList> {
+  const query = new URLSearchParams({
+    page: String(params.page ?? 1),
+    limit: String(params.limit ?? WEBHOOKS_PAGE_SIZE),
+  });
+  const search = params.search?.trim();
+  if (search) query.set('search', search);
 
-  const queryString = query.toString();
-  const path = `/api/v1/webhooks${queryString ? `?${queryString}` : ''}`;
-
-  return apiFetch<WebhookListResponse>(path, { signal });
+  return apiFetch<WebhookList>(`/api/v1/webhooks?${query.toString()}`, {
+    signal,
+  });
 }
 
 export function getWebhook(id: number, signal?: AbortSignal): Promise<Webhook> {
@@ -37,31 +36,4 @@ export function updateWebhook(
     method: 'PUT',
     json: data,
   });
-}
-
-export function toggleWebhookStatus(
-  id: number,
-  active: boolean
-): Promise<Webhook> {
-  return apiFetch<Webhook>(`/api/v1/webhooks/${id}/toggle`, {
-    method: 'PATCH',
-    json: { active },
-  });
-}
-
-export function deleteWebhook(id: number): Promise<void> {
-  return apiFetch<void>(`/api/v1/webhooks/${id}`, {
-    method: 'DELETE',
-  });
-}
-
-export function pingWebhook(
-  id: number
-): Promise<{ success: boolean; latency_ms: number }> {
-  return apiFetch<{ success: boolean; latency_ms: number }>(
-    `/api/v1/webhooks/${id}/ping`,
-    {
-      method: 'POST',
-    }
-  );
 }

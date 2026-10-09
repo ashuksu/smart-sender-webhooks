@@ -4,7 +4,7 @@ import { db } from '../mocks/db';
 import { endSession } from '@/shared/api/session';
 import { resetCsrfToken } from '@/shared/api/csrf';
 
-beforeAll(() => server.listen()); // server.listen({ onUnhandledRequest: 'error' })
+beforeAll(() => server.listen());
 afterEach(() => {
   server.resetHandlers();
   db.resetDb();

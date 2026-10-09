@@ -1,15 +1,10 @@
 import { Outlet } from 'react-router';
 import { useAuthStore } from '@/features/auth/model/useAuthStore';
-import { LoginForm } from '@/features/auth/ui/LoginForm';
 
+/** Authenticated app shell; access is guarded by RequireAuth in the router. */
 export default function App() {
   const user = useAuthStore((state) => state.user);
-  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const logout = useAuthStore((state) => state.logout);
-
-  if (!isAuthenticated) {
-    return <LoginForm />;
-  }
 
   return (
     <div className="min-h-screen bg-slate-900 text-slate-100 flex flex-col">

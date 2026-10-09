@@ -20,5 +20,6 @@ export const queryClient = new QueryClient({
 });
 
 onSessionEnded(() => {
+  void queryClient.cancelQueries();
   queryClient.clear();
 });
