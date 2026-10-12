@@ -1,10 +1,19 @@
 import { Outlet } from 'react-router';
+import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '@/features/auth/model/useAuthStore';
+import { useLanguageStore } from '@/shared/i18n';
 
 /** Authenticated app shell; access is guarded by RequireAuth in the router. */
 export default function App() {
   const user = useAuthStore((state) => state.user);
   const logout = useAuthStore((state) => state.logout);
+  const { t } = useTranslation();
+  const { language, setLanguage } = useLanguageStore();
+
+  const toggleLanguage = () => {
+    const nextLang = language === 'en' ? 'uk' : 'en';
+    setLanguage(nextLang);
+  };
 
   return (
     <div className="min-h-screen bg-slate-900 text-slate-100 flex flex-col">
@@ -13,21 +22,27 @@ export default function App() {
         <div className="max-w-6xl mx-auto px-4 py-3.5 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <div className="w-3 h-3 rounded-full bg-sky-400" />
-            <h1 className="font-bold text-lg text-white">
-              Smart Sender Webhooks
-            </h1>
+            <h1 className="font-bold text-lg text-white">{t('app.title')}</h1>
           </div>
 
           <div className="flex items-center gap-4">
+            <button
+              onClick={toggleLanguage}
+              className="px-2.5 py-1 text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-md border border-slate-700 transition cursor-pointer"
+            >
+              {language === 'en' ? '🇺🇦 UA' : '🇬🇧 EN'}
+            </button>
+
             <div className="text-right">
               <p className="text-sm font-medium text-white">{user?.name}</p>
               <p className="text-xs text-slate-400">{user?.email}</p>
             </div>
+
             <button
               onClick={() => logout()}
-              className="px-3.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white rounded-lg text-sm border border-slate-700 transition"
+              className="px-3.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white rounded-lg text-sm border border-slate-700 transition cursor-pointer"
             >
-              Sign Out
+              {t('common.signOut')}
             </button>
           </div>
         </div>

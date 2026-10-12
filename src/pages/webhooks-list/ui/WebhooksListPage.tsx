@@ -2,8 +2,10 @@ import { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router';
 import { useWebhookFilters } from '@/features/webhooks/model/useWebhookFilters';
 import { useWebhooksQuery } from '@/features/webhooks/model/useWebhooksQuery';
+import { useTranslation } from 'react-i18next';
 
 export function WebhooksListPage() {
+  const { t } = useTranslation();
   const location = useLocation();
   const { filters, setFilter } = useWebhookFilters();
   const { data, isLoading, isError, isPlaceholderData, error, refetch } =
@@ -12,13 +14,11 @@ export function WebhooksListPage() {
   const [prevSearch, setPrevSearch] = useState(filters.search);
   const [searchInput, setSearchInput] = useState(filters.search);
 
-  // Re-sync the input when the URL changes from outside (back/forward, clear)
   if (prevSearch !== filters.search) {
     setPrevSearch(filters.search);
     setSearchInput(filters.search);
   }
 
-  // Debounce: write the search to the URL once the user stops typing
   useEffect(() => {
     if (searchInput === filters.search) return;
     const timer = setTimeout(() => {
@@ -33,17 +33,17 @@ export function WebhooksListPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-white">Webhook Endpoints</h1>
-        <p className="text-sm text-slate-400">
-          Manage and monitor your integration webhooks
-        </p>
+        <h1 className="text-2xl font-bold text-white">
+          {t('webhooksList.title')}
+        </h1>
+        <p className="text-sm text-slate-400">{t('webhooksList.subtitle')}</p>
       </div>
 
       <div className="p-4 bg-slate-800 rounded-xl border border-slate-700 flex gap-3 items-center">
         <input
           type="search"
-          aria-label="Search webhooks by name"
-          placeholder="Search by name..."
+          aria-label={t('webhooksList.searchPlaceholder')}
+          placeholder={t('webhooksList.searchPlaceholder')}
           value={searchInput}
           onChange={(e) => setSearchInput(e.target.value)}
           className="px-4 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:border-sky-500 w-full sm:w-72 text-sm"
@@ -54,14 +54,14 @@ export function WebhooksListPage() {
             onClick={() => setFilter({ search: '' })}
             className="px-3 py-2 text-sm text-slate-400 hover:text-white transition"
           >
-            Clear search
+            {t('webhooksList.clearSearch')}
           </button>
         )}
       </div>
 
       {isLoading ? (
         <div className="p-8 text-center text-slate-400 bg-slate-800 rounded-xl border border-slate-700">
-          Loading webhooks...
+          {t('webhooksList.loadingList')}
         </div>
       ) : isError ? (
         <div
@@ -69,27 +69,31 @@ export function WebhooksListPage() {
           className="p-6 bg-red-500/10 border border-red-500/50 rounded-xl text-red-400 flex items-center justify-between"
         >
           <span>
-            Failed to load webhooks:{' '}
+            {t('webhooksList.loadError')}{' '}
             {error instanceof Error ? error.message : 'Unknown error'}
           </span>
           <button
             onClick={() => void refetch()}
             className="px-3 py-1 bg-red-500 text-white rounded text-sm hover:bg-red-400"
           >
-            Retry
+            {t('common.retry')}
           </button>
         </div>
       ) : !data?.data.length ? (
         <div className="p-12 text-center bg-slate-800 rounded-xl border border-slate-700 space-y-3">
-          <p className="text-slate-400 text-lg">No webhooks found</p>
-          <p className="text-slate-500 text-sm">Try adjusting your search</p>
+          <p className="text-slate-400 text-lg">
+            {t('webhooksList.noWebhooks')}
+          </p>
+          <p className="text-slate-500 text-sm">
+            {t('webhooksList.noWebhooksHint')}
+          </p>
           {currentPage > 1 && (
             <div className="pt-2">
               <button
                 onClick={() => setFilter({ page: 1 })}
                 className="px-4 py-2 text-sm bg-sky-500 hover:bg-sky-400 text-white font-medium rounded-lg transition"
               >
-                Reset to page 1
+                {t('webhooksList.resetToPage1')}
               </button>
             </div>
           )}
@@ -105,16 +109,18 @@ export function WebhooksListPage() {
               <thead className="bg-slate-900/60 text-xs font-semibold uppercase tracking-wider text-slate-400 border-b border-slate-700">
                 <tr>
                   <th scope="col" className="px-6 py-3">
-                    Name
+                    {t('webhooksList.table.name')}
                   </th>
                   <th scope="col" className="px-6 py-3">
-                    URL
+                    {t('webhooksList.table.url')}
                   </th>
                   <th scope="col" className="px-6 py-3">
-                    Status
+                    {t('webhooksList.table.status')}
                   </th>
                   <th scope="col" className="px-6 py-3 text-right">
-                    <span className="sr-only">Actions</span>
+                    <span className="sr-only">
+                      {t('webhooksList.table.actions')}
+                    </span>
                   </th>
                 </tr>
               </thead>
@@ -143,17 +149,18 @@ export function WebhooksListPage() {
                             : 'bg-slate-700 text-slate-400 border border-slate-600'
                         }`}
                       >
-                        {item.active ? 'Active' : 'Inactive'}
+                        {item.active
+                          ? t('common.active')
+                          : t('common.inactive')}
                       </span>
                     </td>
                     <td className="px-6 py-4 text-right">
-                      {/* Back-navigation context travels in router state, not in the URL */}
                       <Link
                         to={`/webhooks/${item.id}`}
                         state={{ from: location.search }}
                         className="px-2.5 py-1 bg-sky-500/10 hover:bg-sky-500/20 text-sky-400 text-xs rounded transition"
                       >
-                        Edit
+                        {t('common.edit')}
                       </Link>
                     </td>
                   </tr>
@@ -168,7 +175,9 @@ export function WebhooksListPage() {
               className="px-6 py-4 bg-slate-900/40 border-t border-slate-700 flex items-center justify-between text-sm"
             >
               <span className="text-slate-400">
-                Page <strong className="text-white">{currentPage}</strong> of{' '}
+                {t('webhooksList.pagination.page')}{' '}
+                <strong className="text-white">{currentPage}</strong>{' '}
+                {t('webhooksList.pagination.of')}{' '}
                 <strong className="text-white">{totalPages}</strong>
               </span>
               <div className="flex gap-2">
@@ -177,14 +186,14 @@ export function WebhooksListPage() {
                   onClick={() => setFilter({ page: currentPage - 1 })}
                   className="px-3 py-1 bg-slate-700 hover:bg-slate-600 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded text-xs transition"
                 >
-                  Previous
+                  {t('common.previous')}
                 </button>
                 <button
                   disabled={currentPage >= totalPages}
                   onClick={() => setFilter({ page: currentPage + 1 })}
                   className="px-3 py-1 bg-slate-700 hover:bg-slate-600 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded text-xs transition"
                 >
-                  Next
+                  {t('common.next')}
                 </button>
               </div>
             </nav>

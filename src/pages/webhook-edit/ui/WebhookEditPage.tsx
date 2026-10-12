@@ -9,31 +9,13 @@ import {
   useUpdateWebhook,
   useWebhookDetailQuery,
 } from '@/features/webhooks/model/useWebhooksQuery';
-
-const webhookSchema = z.object({
-  name: z.string().trim().min(1, 'Name is required'),
-  url: z
-    .string()
-    .trim()
-    .min(1, 'URL is required')
-    .refine((val) => {
-      try {
-        const { protocol } = new URL(val);
-        return protocol === 'http:' || protocol === 'https:';
-      } catch {
-        return false;
-      }
-    }, 'URL must be a valid HTTP or HTTPS address'),
-});
-
-type WebhookFormValues = z.infer<typeof webhookSchema>;
+import { useTranslation } from 'react-i18next';
 
 const inputClass =
   'w-full px-4 py-2.5 bg-slate-900 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:border-sky-500 aria-[invalid=true]:border-red-500 text-sm';
 const labelClass =
   'block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1';
 
-/** Reads the list query string (e.g. "?page=2") passed by the list page via router state. */
 function getBackSearch(state: unknown): string {
   if (
     typeof state === 'object' &&
@@ -48,6 +30,7 @@ function getBackSearch(state: unknown): string {
 }
 
 export function WebhookEditPage() {
+  const { t } = useTranslation();
   const { id } = useParams<{ id: string }>();
   const location = useLocation();
   const backSearch = getBackSearch(location.state);
@@ -57,13 +40,12 @@ export function WebhookEditPage() {
   if (isLoading) {
     return (
       <div className="p-8 text-center text-slate-400">
-        Loading webhook details...
+        {t('webhookEdit.loadingDetail')}
       </div>
     );
   }
 
   if (!webhook) {
-    // Invalid id (query disabled) and 404 are both "not found"
     const notFound = !error || (isApiError(error) && error.status === 404);
     return (
       <div
@@ -72,11 +54,11 @@ export function WebhookEditPage() {
       >
         <p>
           {notFound
-            ? 'Webhook not found.'
-            : `Error loading webhook: ${error?.message ?? 'Unknown error'}`}
+            ? t('webhookEdit.notFound')
+            : `${t('webhookEdit.loadError')} ${error?.message ?? 'Unknown error'}`}
         </p>
         <Link to={backUrl} className="text-sky-400 hover:underline text-sm">
-          Back to list
+          {t('common.backToList')}
         </Link>
       </div>
     );
@@ -94,8 +76,27 @@ function WebhookEditForm({
   webhook: Webhook;
   backUrl: string;
 }) {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { mutateAsync: update } = useUpdateWebhook(webhook.id);
+
+  const webhookSchema = z.object({
+    name: z.string().trim().min(1, t('validation.nameRequired')),
+    url: z
+      .string()
+      .trim()
+      .min(1, t('validation.urlRequired'))
+      .refine((val) => {
+        try {
+          const { protocol } = new URL(val);
+          return protocol === 'http:' || protocol === 'https:';
+        } catch {
+          return false;
+        }
+      }, t('validation.invalidUrl')),
+  });
+
+  type WebhookFormValues = z.infer<typeof webhookSchema>;
 
   const {
     register,
@@ -120,17 +121,17 @@ function WebhookEditForm({
     <div className="max-w-2xl mx-auto space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-white">Edit Webhook</h1>
-          <p className="text-sm text-slate-400">
-            Update target endpoint configuration
-          </p>
+          <h1 className="text-2xl font-bold text-white">
+            {t('webhookEdit.title')}
+          </h1>
+          <p className="text-sm text-slate-400">{t('webhookEdit.subtitle')}</p>
         </div>
         <button
           type="button"
           onClick={() => void navigate(backUrl)}
           className="px-3 py-1.5 text-sm bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg transition"
         >
-          Back to List
+          {t('common.backToList')}
         </button>
       </div>
 
@@ -151,7 +152,7 @@ function WebhookEditForm({
         >
           <div>
             <label htmlFor="name" className={labelClass}>
-              Name
+              {t('webhookEdit.nameLabel')}
             </label>
             <input
               id="name"
@@ -174,7 +175,7 @@ function WebhookEditForm({
 
           <div>
             <label htmlFor="url" className={labelClass}>
-              Target URL
+              {t('webhookEdit.urlLabel')}
             </label>
             <input
               id="url"
@@ -201,14 +202,16 @@ function WebhookEditForm({
               disabled={isSubmitting}
               className="px-5 py-2.5 bg-sky-500 hover:bg-sky-400 text-white text-sm font-semibold rounded-lg shadow transition disabled:opacity-50"
             >
-              {isSubmitting ? 'Saving...' : 'Save Changes'}
+              {isSubmitting
+                ? t('webhookEdit.saving')
+                : t('webhookEdit.saveChanges')}
             </button>
             <button
               type="button"
               onClick={() => void navigate(backUrl)}
               className="px-5 py-2.5 bg-slate-700 hover:bg-slate-600 text-white text-sm rounded-lg transition"
             >
-              Cancel
+              {t('common.cancel')}
             </button>
           </div>
         </form>
