@@ -1,15 +1,18 @@
 import { Outlet } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '@/features/auth/model/useAuthStore';
+import { useLanguageStore } from '@/shared/i18n/useLanguageStore';
 
 /** Authenticated app shell; access is guarded by RequireAuth in the router. */
 export default function App() {
   const user = useAuthStore((state) => state.user);
   const logout = useAuthStore((state) => state.logout);
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
+  const { language, setLanguage } = useLanguageStore();
+
   const toggleLanguage = () => {
-    const nextLang = i18n.language === 'en' ? 'uk' : 'en';
-    i18n.changeLanguage(nextLang);
+    const nextLang = language === 'en' ? 'uk' : 'en';
+    setLanguage(nextLang);
   };
 
   return (
@@ -27,7 +30,7 @@ export default function App() {
               onClick={toggleLanguage}
               className="px-2.5 py-1 text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-md border border-slate-700 transition cursor-pointer"
             >
-              {i18n.language === 'en' ? '🇺🇦 UA' : '🇬🇧 EN'}
+              {language === 'en' ? '🇺🇦 UA' : '🇬🇧 EN'}
             </button>
 
             <div className="text-right">
