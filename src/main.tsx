@@ -3,7 +3,7 @@ import { createRoot } from 'react-dom/client';
 import { RouterProvider } from 'react-router';
 import { QueryProvider } from '@/app/providers/QueryProvider';
 import { router } from '@/app/router';
-import '@/shared/i18n/config';
+import '@/shared/i18n';
 import './index.css';
 
 async function enableMocking() {

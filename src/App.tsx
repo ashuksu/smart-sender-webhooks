@@ -1,7 +1,7 @@
 import { Outlet } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '@/features/auth/model/useAuthStore';
-import { useLanguageStore } from '@/shared/i18n/useLanguageStore';
+import { useLanguageStore } from '@/shared/i18n';
 
 /** Authenticated app shell; access is guarded by RequireAuth in the router. */
 export default function App() {

@@ -1,13 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import i18n from './config';
-
-export type Language = 'en' | 'uk';
-
-export interface LanguageState {
-  language: Language;
-  setLanguage: (lang: Language) => void;
-}
+import type { LanguageState, Language } from './types';
 
 export const useLanguageStore = create<LanguageState>()(
   persist(
