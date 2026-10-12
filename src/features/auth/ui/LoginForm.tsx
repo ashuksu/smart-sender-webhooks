@@ -6,13 +6,7 @@ import { DEMO_EMAIL, DEMO_PASSWORD } from '@/shared/api/constants';
 import { applyServerErrors } from '@/shared/lib/applyServerErrors';
 import { sanitizeReturnTo } from '@/shared/lib/sanitizeReturnTo';
 import { useAuthStore } from '../model/useAuthStore';
-
-const loginSchema = z.object({
-  email: z.email('Enter a valid email'),
-  password: z.string().min(1, 'Password is required'),
-});
-
-type LoginValues = z.infer<typeof loginSchema>;
+import { useTranslation } from 'react-i18next';
 
 const inputClass =
   'w-full px-4 py-2.5 bg-slate-900 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:border-sky-500 aria-[invalid=true]:border-red-500';
@@ -23,8 +17,15 @@ export function LoginForm() {
   const login = useAuthStore((state) => state.login);
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const [searchParams] = useSearchParams();
-
+  const { t } = useTranslation();
   const returnTo = sanitizeReturnTo(searchParams.get('returnTo'));
+
+  const loginSchema = z.object({
+    email: z.email(t('validation.invalidEmail')),
+    password: z.string().min(1, t('validation.passwordRequired')),
+  });
+
+  type LoginValues = z.infer<typeof loginSchema>;
 
   const {
     register,
@@ -53,11 +54,9 @@ export function LoginForm() {
       <div className="w-full max-w-md p-8 bg-slate-800 rounded-2xl shadow-2xl border border-slate-700">
         <div className="mb-6 text-center">
           <h1 className="text-2xl font-bold text-sky-400 mb-1">
-            Smart Sender Webhooks
+            {t('auth.login.title')}
           </h1>
-          <p className="text-slate-400 text-sm">
-            Sign in to manage your webhook endpoints
-          </p>
+          <p className="text-slate-400 text-sm">{t('auth.login.subtitle')}</p>
         </div>
 
         {errors.root?.message && (
@@ -72,7 +71,7 @@ export function LoginForm() {
         <form onSubmit={onSubmit} noValidate className="space-y-4">
           <div>
             <label htmlFor="email" className={labelClass}>
-              Email
+              {t('common.emailLabel')}
             </label>
             <input
               id="email"
@@ -96,7 +95,7 @@ export function LoginForm() {
 
           <div>
             <label htmlFor="password" className={labelClass}>
-              Password
+              {t('common.passwordLabel')}
             </label>
             <input
               id="password"
@@ -123,12 +122,12 @@ export function LoginForm() {
             disabled={isSubmitting}
             className="w-full py-3 bg-sky-500 hover:bg-sky-400 text-white font-semibold rounded-lg shadow-md transition duration-150 disabled:opacity-50 disabled:cursor-not-allowed mt-2"
           >
-            {isSubmitting ? 'Authenticating...' : 'Sign In'}
+            {isSubmitting ? t('auth.login.submitting') : t('common.signIn')}
           </button>
         </form>
 
         <div className="mt-6 pt-4 border-t border-slate-700/60 text-xs text-slate-400 text-center">
-          <p>Demo credentials are pre-filled.</p>
+          <p>{t('auth.login.demoHint')}</p>
         </div>
       </div>
     </div>

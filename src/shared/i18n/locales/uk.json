@@ -1,6 +1,68 @@
 {
+  "common": {
+    "loading": "Завантаження...",
+    "save": "Зберегти",
+    "cancel": "Скасувати",
+    "signOut": "Вийти",
+    "signIn": "Увійти",
+    "emailLabel": "Email",
+    "passwordLabel": "Пароль",
+    "backToList": "Повернутися до списку",
+    "retry": "Повторити",
+    "active": "Активний",
+    "inactive": "Неактивний",
+    "edit": "Редагувати",
+    "previous": "Попередня",
+    "next": "Наступна"
+  },
   "app": {
-    "title": "Вебхуки Smart Sender",
-    "signOut": "Вийти"
+    "title": "Вебхуки Smart Sender"
+  },
+  "auth": {
+    "login": {
+      "title": "Вебхуки Smart Sender",
+      "subtitle": "Увійдіть, щоб керувати кінцевими точками вебхуків",
+      "submitting": "Автентифікація...",
+      "demoHint": "Демо-облікові дані попередньо заповнені."
+    }
+  },
+  "validation": {
+    "invalidEmail": "Введіть дійсну електронну адресу",
+    "passwordRequired": "Потрібен пароль",
+    "nameRequired": "Ім'я обов'язкове",
+    "urlRequired": "URL обов'язковий",
+    "invalidUrl": "URL має бути дійсною адресою HTTP або HTTPS"
+  },
+  "webhooksList": {
+    "title": "Кінцеві точки вебхуків",
+    "subtitle": "Керуйте інтеграційними вебхуками та моніторьте їх",
+    "searchPlaceholder": "Пошук за назвою...",
+    "clearSearch": "Очистити пошук",
+    "loadingList": "Завантаження вебхуків...",
+    "loadError": "Не вдалося завантажити вебхуки:",
+    "noWebhooks": "Вебхуків не знайдено",
+    "noWebhooksHint": "Спробуйте змінити параметри пошуку",
+    "resetToPage1": "Скинути на сторінку 1",
+    "table": {
+      "name": "Назва",
+      "url": "URL",
+      "status": "Статус",
+      "actions": "Дії"
+    },
+    "pagination": {
+      "page": "Сторінка",
+      "of": "з"
+    }
+  },
+  "webhookEdit": {
+    "title": "Редагування вебхука",
+    "subtitle": "Оновлення конфігурації цільового ендпоінта",
+    "loadingDetail": "Завантаження деталей вебхука...",
+    "notFound": "Вебхук не знайдено.",
+    "loadError": "Помилка завантаження вебхука:",
+    "nameLabel": "Назва",
+    "urlLabel": "Цільовий URL",
+    "saving": "Збереження...",
+    "saveChanges": "Зберегти зміни"
   }
 }

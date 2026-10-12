@@ -1,6 +1,68 @@
 {
+  "common": {
+    "loading": "Loading...",
+    "save": "Save",
+    "cancel": "Cancel",
+    "signOut": "Sign Out",
+    "signIn": "Sign In",
+    "emailLabel": "Email",
+    "passwordLabel": "Password",
+    "backToList": "Back to List",
+    "retry": "Retry",
+    "active": "Active",
+    "inactive": "Inactive",
+    "edit": "Edit",
+    "previous": "Previous",
+    "next": "Next"
+  },
   "app": {
-    "title": "Smart Sender Webhooks",
-    "signOut": "Sign Out"
+    "title": "Smart Sender Webhooks"
+  },
+  "auth": {
+    "login": {
+      "title": "Smart Sender Webhooks",
+      "subtitle": "Sign in to manage your webhook endpoints",
+      "submitting": "Authenticating...",
+      "demoHint": "Demo credentials are pre-filled."
+    }
+  },
+  "validation": {
+    "invalidEmail": "Enter a valid email",
+    "passwordRequired": "Password is required",
+    "nameRequired": "Name is required",
+    "urlRequired": "URL is required",
+    "invalidUrl": "URL must be a valid HTTP or HTTPS address"
+  },
+  "webhooksList": {
+    "title": "Webhook Endpoints",
+    "subtitle": "Manage and monitor your integration webhooks",
+    "searchPlaceholder": "Search by name...",
+    "clearSearch": "Clear search",
+    "loadingList": "Loading webhooks...",
+    "loadError": "Failed to load webhooks:",
+    "noWebhooks": "No webhooks found",
+    "noWebhooksHint": "Try adjusting your search",
+    "resetToPage1": "Reset to page 1",
+    "table": {
+      "name": "Name",
+      "url": "URL",
+      "status": "Status",
+      "actions": "Actions"
+    },
+    "pagination": {
+      "page": "Page",
+      "of": "of"
+    }
+  },
+  "webhookEdit": {
+    "title": "Edit Webhook",
+    "subtitle": "Update target endpoint configuration",
+    "loadingDetail": "Loading webhook details...",
+    "notFound": "Webhook not found.",
+    "loadError": "Error loading webhook:",
+    "nameLabel": "Name",
+    "urlLabel": "Target URL",
+    "saving": "Saving...",
+    "saveChanges": "Save Changes"
   }
 }

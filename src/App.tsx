@@ -39,7 +39,7 @@ export default function App() {
               onClick={() => logout()}
               className="px-3.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white rounded-lg text-sm border border-slate-700 transition cursor-pointer"
             >
-              {t('app.signOut')}
+              {t('common.signOut')}
             </button>
           </div>
         </div>
